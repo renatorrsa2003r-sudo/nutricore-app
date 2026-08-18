@@ -61,6 +61,7 @@ class PerfilUsuarioInput(BaseModel):
     habilidade_culinaria: Optional[str] = "pratico"
     orcamento: Optional[str] = "medio"
     refeicoes_por_dia: int = Field(4, ge=3, le=6)
+    dias_plano: int = Field(7, ge=1, le=20)
     gemini_api_key: Optional[str] = None
 
 class Macronutrientes(BaseModel):
@@ -81,12 +82,18 @@ class RefeicaoIA(BaseModel):
     modo_preparo: str
     dica_chef: str
 
+class DiaPlano(BaseModel):
+    dia: int
+    titulo_dia: str
+    refeicoes: List[RefeicaoIA]
+
 class PlanoAlimentarResponse(BaseModel):
     tmb: float
     tdee: float
     meta_calorica: float
     macros: Macronutrientes
-    refeicoes: List[RefeicaoIA]
+    dias_total: int
+    dias: List[DiaPlano]
 
 class ConsultaFuncionalInput(BaseModel):
     objetivo_especifico: str = Field(..., min_length=3)
@@ -138,7 +145,6 @@ class TreinoResponse(BaseModel):
 # 2. MODELOS ATIVOS E EXECUTOR IA
 # ==========================================
 
-# Lista de modelos oficiais e vigentes na API do Gemini
 MODELOS_ATIVOS = [
     "gemini-3.5-flash-lite",
     "gemini-3.7-flash",
@@ -162,9 +168,7 @@ def obter_chave(api_key_param: Optional[str]):
     return key.strip()
 
 def executar_chamada_ia(client: genai.Client, prompt: str):
-    """Percorre os modelos disponíveis e trata instabilidade momentânea."""
     ultimo_erro = None
-
     for modelo in MODELOS_ATIVOS:
         for tentativa in range(2):
             try:
@@ -181,10 +185,8 @@ def executar_chamada_ia(client: genai.Client, prompt: str):
             except Exception as e:
                 erro_str = str(e)
                 ultimo_erro = erro_str
-                # Se for erro 404 (modelo indisponível na região/conta), avança direto para o próximo modelo
                 if "404" in erro_str or "NOT_FOUND" in erro_str:
                     break
-                # Se for 503 ou 429, aguarda 1 segundo antes de tentar novamente
                 time.sleep(1.0)
 
     raise HTTPException(
@@ -276,47 +278,69 @@ def criar_plano(perfil: PerfilUsuarioInput):
     client = genai.Client(api_key=api_key)
 
     prompt = f"""
-    Atue como nutricionista clínico avançado e crie um plano alimentar diário completo e estruturado.
-    Formato OBRIGATÓRIO: Retorne estritamente um array JSON com {perfil.refeicoes_por_dia} refeições.
+    Atue como nutricionista clínico avançado e elabore um plano alimentar completo para exatamente {perfil.dias_plano} dia(s).
+    
+    ESTRUTURA JSON OBRIGATÓRIA:
+    Retorne um objeto JSON contendo o campo "dias", onde cada elemento representa um dia com exatamente {perfil.refeicoes_por_dia} refeições.
     Exemplo:
-    [
-      {{
-        "nome_refeicao": "Café da Manhã",
-        "titulo_prato": "Ovos Mexidos com Aveia e Fruta",
-        "horario_sugerido": "07:30",
-        "calorias_alvo": 420.0,
-        "proteinas_refeicao_g": 28.0,
-        "carboidratos_refeicao_g": 35.0,
-        "gorduras_refeicao_g": 14.0,
-        "ingredientes": ["3 ovos inteiros", "30g de farelo de aveia", "1 banana prata"],
-        "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva acompanhado da banana com aveia.",
-        "dica_chef": "Adicione canela a gosto para saciedade prolongada."
-      }}
-    ]
+    {{
+      "dias": [
+        {{
+          "dia": 1,
+          "titulo_dia": "Dia 1 - Foco em Energia & Adaptação",
+          "refeicoes": [
+            {{
+              "nome_refeicao": "Café da Manhã",
+              "titulo_prato": "Ovos Mexidos com Aveia e Fruta",
+              "horario_sugerido": "07:30",
+              "calorias_alvo": 420.0,
+              "proteinas_refeicao_g": 28.0,
+              "carboidratos_refeicao_g": 35.0,
+              "gorduras_refeicao_g": 14.0,
+              "ingredientes": ["3 ovos", "30g aveia", "1 banana"],
+              "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
+              "dica_chef": "Adicione canela para saciedade."
+            }}
+          ]
+        }}
+      ]
+    }}
 
-    Dados do Paciente:
-    - Peso: {perfil.peso_kg}kg | Altura: {perfil.altura_cm}cm | Idade: {perfil.idade} anos | Sexo: {perfil.sexo.value}
-    - Meta Calórica Total: {meta_calorica} kcal
-    - Macros: Proteínas {macros.proteinas_g}g | Carbos {macros.carboidratos_g}g | Gorduras {macros.gorduras_g}g
-    - Quantidade exata de refeições: {perfil.refeicoes_por_dia}
-    - Estilo Culinário: {perfil.estilo_culinario.value} | Padrão: {perfil.preferencia.value}
-    - Horários: Acorda {perfil.horario_acordar}, Dorme {perfil.horario_dormir}, Treino: {perfil.horario_treino}
-    - Alimentos favoritos: {perfil.alimentos_favoritos or 'Nenhum'}
-    - Evitar / Alergias: {perfil.alimentos_evitar or 'Nenhum'}
-    - Condições Clínicas: {', '.join(perfil.intolerancias_saude) if perfil.intolerancias_saude else 'Nenhuma'}
+    Diretrizes para o período ({perfil.dias_plano} dias):
+    - Gere {perfil.dias_plano} dia(s) com variedade inteligente de preparações, respeitando o estilo {perfil.estilo_culinario.value}.
+    - Calorias Alvo por Dia: ~{meta_calorica} kcal | Macros: {macros.proteinas_g}g Proteína, {macros.carboidratos_g}g Carbo, {macros.gorduras_g}g Gordura.
+    - Preferência: {perfil.preferencia.value}.
+    - Alimentos favoritos: {perfil.alimentos_favoritos or 'Nenhum'}.
+    - Alimentos a evitar: {perfil.alimentos_evitar or 'Nenhum'}.
+    - Condições clínicas: {', '.join(perfil.intolerancias_saude) if perfil.intolerancias_saude else 'Nenhuma'}.
 
     Retorne APENAS o JSON puro.
     """
 
-    dados_refeicoes = executar_chamada_ia(client, prompt)
-    refeicoes_objs = [RefeicaoIA(**ref) for ref in dados_refeicoes]
+    resultado_json = executar_chamada_ia(client, prompt)
+    
+    # Tratamento caso a IA retorne diretamente uma lista ou um dicionário com "dias"
+    if isinstance(resultado_json, list):
+        lista_dias_raw = resultado_json
+    elif isinstance(resultado_json, dict) and "dias" in resultado_json:
+        lista_dias_raw = resultado_json["dias"]
+    else:
+        # Fallback se retornar refeições soltas
+        lista_dias_raw = [{"dia": 1, "titulo_dia": "Dia 1 - Plano Principal", "refeicoes": resultado_json}]
+
+    dias_objs = []
+    for item in lista_dias_raw:
+        if "refeicoes" in item:
+            refeicoes = [RefeicaoIA(**r) for r in item["refeicoes"]]
+            dias_objs.append(DiaPlano(dia=item.get("dia", len(dias_objs)+1), titulo_dia=item.get("titulo_dia", f"Dia {len(dias_objs)+1}"), refeicoes=refeicoes))
 
     return PlanoAlimentarResponse(
         tmb=tmb,
         tdee=tdee,
         meta_calorica=meta_calorica,
         macros=macros,
-        refeicoes=refeicoes_objs
+        dias_total=len(dias_objs),
+        dias=dias_objs
     )
 
 @app.post("/api/v1/nutrition/consult", response_model=ConsultaFuncionalResponse)
