@@ -6,18 +6,18 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
-  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
-  <!-- BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
-  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
@@ -79,6 +79,8 @@
     button.btn-primary:hover { background: var(--accent-hover); }
     button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    .btn-action-sm { width: auto !important; padding: 8px 14px !important; font-size: 0.85rem !important; }
+
     .metric-box { background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
     .metric-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
 
@@ -95,7 +97,7 @@
     .recipe-section { margin-top: 10px; }
     .recipe-section h4 { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; }
     .ingredient-list { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 6px; }
-    .ingredient-list li { background: var(--bg-main); padding: 8px 10px; border-radius: 6px; font-size: 0.88rem; border: 1px solid var(--border); }
+    .ingredient-list li { background: var(--bg-main); padding: 8px 10px; border-radius: 6px; font-size: 0.88rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
 
     .prep-box { background: var(--bg-main); padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent); margin-top: 12px; font-size: 0.88rem; line-height: 1.5; }
     .tip-box { margin-top: 8px; font-size: 0.82rem; color: #d97706; background: rgba(217, 119, 6, 0.08); padding: 10px; border-radius: 6px; }
@@ -166,7 +168,7 @@
         padding: 0;
       }
       .mob-nav-btn.active { color: var(--accent); font-weight: 700; }
-      .mob-nav-btn i { font-size: 1.1rem; }
+      .mob-nav-btn i { font-size: 1.15rem; }
     }
   </style>
 </head>
@@ -174,15 +176,15 @@
 
   <!-- BARRA LATERAL (DESKTOP) -->
   <aside>
-    <div class="brand"><i class="fa-solid fa-leaf"></i> NutriCore Pro</div>
+    <div class="brand"><i class="fas fa-leaf"></i> NutriCore Pro</div>
     <ul class="nav-list">
-      <li class="nav-item active" onclick="switchTab('perfil')"><i class="fa-solid fa-user"></i> Meu Perfil</li>
-      <li class="nav-item" onclick="switchTab('dieta')"><i class="fa-solid fa-utensils"></i> Plano Alimentar</li>
-      <li class="nav-item" onclick="switchTab('evolucao')"><i class="fa-solid fa-chart-line"></i> Evolução & Peso</li>
-      <li class="nav-item" onclick="switchTab('funcional')"><i class="fa-solid fa-flask-vial"></i> Nutrição Funcional</li>
-      <li class="nav-item" onclick="switchTab('treino')"><i class="fa-solid fa-dumbbell"></i> Treino</li>
-      <li class="nav-item" onclick="switchTab('compras')"><i class="fa-solid fa-basket-shopping"></i> Lista de Compras</li>
-      <li class="nav-item" onclick="switchTab('configuracoes')"><i class="fa-solid fa-gear"></i> Configurações</li>
+      <li class="nav-item active" onclick="switchTab('perfil')"><i class="fas fa-user"></i> Meu Perfil</li>
+      <li class="nav-item" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i> Plano Alimentar</li>
+      <li class="nav-item" onclick="switchTab('evolucao')"><i class="fas fa-chart-line"></i> Evolução & Peso</li>
+      <li class="nav-item" onclick="switchTab('funcional')"><i class="fas fa-flask-vial"></i> Nutrição Funcional</li>
+      <li class="nav-item" onclick="switchTab('treino')"><i class="fas fa-dumbbell"></i> Treino</li>
+      <li class="nav-item" onclick="switchTab('compras')"><i class="fas fa-shopping-cart"></i> Lista de Compras</li>
+      <li class="nav-item" onclick="switchTab('configuracoes')"><i class="fas fa-gear"></i> Configurações</li>
     </ul>
   </aside>
 
@@ -258,7 +260,7 @@
         </div>
 
         <button type="submit" id="btn-gerar" class="btn-primary">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Plano Alimentar Completo
+          <i class="fas fa-wand-magic-sparkles"></i> Gerar Plano Alimentar Completo
         </button>
       </form>
     </section>
@@ -268,8 +270,12 @@
       <header>
         <h1>Plano Nutricional</h1>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-primary" style="background: #0284c7; width: auto; padding: 8px 12px;" onclick="exportarPlanoPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-          <button class="btn-primary" style="width: auto; padding: 8px 12px;" onclick="switchTab('compras')"><i class="fa-solid fa-cart-shopping"></i></button>
+          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="exportarPlanoPDF()">
+            <i class="fas fa-file-pdf"></i> Baixar PDF
+          </button>
+          <button class="btn-primary btn-action-sm" style="background: var(--accent);" onclick="switchTab('compras')">
+            <i class="fas fa-shopping-cart"></i> Ver Lista
+          </button>
         </div>
       </header>
       <div id="area-pdf">
@@ -280,7 +286,7 @@
           <div class="card metric-box"><label>Gorduras</label><div class="metric-value" id="card-gorduras">-- g</div></div>
         </div>
         <div id="loading">
-          <i class="fa-solid fa-circle-notch spinner"></i>
+          <i class="fas fa-circle-notch spinner"></i>
           <p style="margin-top: 12px; font-weight: 600;">Calculando porções e receitas personalizadas...</p>
         </div>
         <div id="lista-refeicoes"></div>
@@ -291,8 +297,8 @@
     <section id="tab-evolucao" class="tab-content">
       <header><h1>Evolução & Peso</h1></header>
       <div id="banner-recalibrar" style="display: none;" class="recalibrate-banner">
-        <div><strong><i class="fa-solid fa-arrow-trend-down"></i> Seu peso mudou!</strong><p style="font-size: 0.85rem;" id="texto-recalibrar"></p></div>
-        <button class="btn-primary" style="width: auto; padding: 8px 12px;" onclick="aplicarRecalibracao()">Recalibrar</button>
+        <div><strong><i class="fas fa-arrow-trend-down"></i> Seu peso mudou!</strong><p style="font-size: 0.85rem;" id="texto-recalibrar"></p></div>
+        <button class="btn-primary btn-action-sm" onclick="aplicarRecalibracao()">Recalibrar</button>
       </div>
 
       <div class="grid-4">
@@ -358,11 +364,11 @@
             <span class="chip" onclick="preencherChip('Quero melhorar meu sono e relaxamento à noite')">😴 Sono</span>
             <span class="chip" onclick="preencherChip('Foco e concentração mental para estudos/trabalho')">🧠 Foco</span>
           </div>
-          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fa-solid fa-microscope"></i> Analisar Protocolo</button>
+          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fas fa-microscope"></i> Analisar Protocolo</button>
         </form>
       </div>
       <div id="loading-funcional">
-        <i class="fa-solid fa-circle-notch spinner"></i>
+        <i class="fas fa-circle-notch spinner"></i>
         <p style="margin-top: 10px; font-weight: 600;">Analisando compostos bioativos...</p>
       </div>
       <div id="resultado-funcional"></div>
@@ -406,11 +412,11 @@
               </select>
             </div>
           </div>
-          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fa-solid fa-dumbbell"></i> Gerar Treino com IA</button>
+          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fas fa-dumbbell"></i> Gerar Treino com IA</button>
         </form>
       </div>
       <div id="loading-treino">
-        <i class="fa-solid fa-circle-notch spinner"></i>
+        <i class="fas fa-circle-notch spinner"></i>
         <p style="margin-top: 10px; font-weight: 600;">Montando sua série de exercícios...</p>
       </div>
       <div id="resultado-treino"></div>
@@ -421,8 +427,12 @@
       <header>
         <h1>Lista de Compras</h1>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-primary" style="background: #25D366; width: auto; padding: 8px 12px;" onclick="copiarListaWhatsApp()"><i class="fa-brands fa-whatsapp"></i></button>
-          <button class="btn-primary" style="background: #0284c7; width: auto; padding: 8px 12px;" onclick="exportarComprasPDF()"><i class="fa-solid fa-file-pdf"></i></button>
+          <button class="btn-primary btn-action-sm" style="background: #25D366;" onclick="copiarListaWhatsApp()">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </button>
+          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="exportarComprasPDF()">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
         </div>
       </header>
       <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
@@ -444,22 +454,22 @@
       </div>
       
       <div class="card" id="install-card" style="display: none; border: 2px dashed var(--accent);">
-        <h3><i class="fa-solid fa-mobile-screen-button" style="color: var(--accent);"></i> Instalar Aplicativo</h3>
+        <h3><i class="fas fa-mobile-screen-button" style="color: var(--accent);"></i> Instalar Aplicativo</h3>
         <p style="font-size: 0.88rem; color: var(--text-muted); margin: 6px 0 12px 0;">Instale o NutriCore Pro na tela inicial do seu celular para acesso rápido em tela cheia.</p>
-        <button class="btn-primary" onclick="instalarApp()"><i class="fa-solid fa-download"></i> Instalar na Tela Inicial</button>
+        <button class="btn-primary" onclick="instalarApp()"><i class="fas fa-download"></i> Instalar na Tela Inicial</button>
       </div>
     </section>
   </main>
 
   <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA CELULAR -->
   <nav class="mobile-nav">
-    <button class="mob-nav-btn active" onclick="switchTab('perfil')"><i class="fa-solid fa-user"></i><span>Perfil</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('dieta')"><i class="fa-solid fa-utensils"></i><span>Plano</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('evolucao')"><i class="fa-solid fa-chart-line"></i><span>Evo</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('funcional')"><i class="fa-solid fa-flask-vial"></i><span>Funcional</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('treino')"><i class="fa-solid fa-dumbbell"></i><span>Treino</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('compras')"><i class="fa-solid fa-cart-shopping"></i><span>Lista</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('configuracoes')"><i class="fa-solid fa-gear"></i><span>Config</span></button>
+    <button class="mob-nav-btn active" onclick="switchTab('perfil')"><i class="fas fa-user"></i><span>Perfil</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i><span>Plano</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('evolucao')"><i class="fas fa-chart-line"></i><span>Evo</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('funcional')"><i class="fas fa-flask-vial"></i><span>Funcional</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('treino')"><i class="fas fa-dumbbell"></i><span>Treino</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('compras')"><i class="fas fa-shopping-cart"></i><span>Lista</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('configuracoes')"><i class="fas fa-gear"></i><span>Config</span></button>
   </nav>
 
   <script>
@@ -626,7 +636,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -717,7 +727,7 @@
       let html = '';
       [...historicoEvolucao].reverse().forEach((item, index) => {
         const realIdx = historicoEvolucao.length - 1 - index;
-        html += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td><strong>${item.peso}kg</strong></td><td>${item.cintura || '--'}</td><td>${item.obs}</td><td><button style="background:none;border:none;color:#ef4444;" onclick="excluirRegistro(${realIdx})"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        html += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td><strong>${item.peso}kg</strong></td><td>${item.cintura || '--'}</td><td>${item.obs}</td><td><button style="background:none;border:none;color:#ef4444;cursor:pointer;" onclick="excluirRegistro(${realIdx})"><i class="fas fa-trash"></i></button></td></tr>`;
       });
       corpo.innerHTML = html;
     }
@@ -771,7 +781,7 @@
             <div class="meal-title">${ref.titulo_prato}</div>
             <div class="recipe-section">
               <h4>Ingredientes:</h4>
-              <ul class="ingredient-list">${ref.ingredientes.map(i => `<li><i class="fa-solid fa-check" style="color:var(--accent)"></i> ${i}</li>`).join('')}</ul>
+              <ul class="ingredient-list">${ref.ingredientes.map(i => `<li><i class="fas fa-check" style="color:var(--accent)"></i> ${i}</li>`).join('')}</ul>
             </div>
             <div class="prep-box"><strong>Preparo:</strong> ${ref.modo_preparo}</div>
             <div class="tip-box">💡 ${ref.dica_chef}</div>
@@ -886,15 +896,37 @@
     }
 
     function atualizarMultiplicadorCompras(dias) { renderizarListaCompras(parseInt(dias)); }
+    
     function copiarListaWhatsApp() {
       if (!dadosPlanoAtual) return alert('Gere um plano primeiro!');
       let t = `🛒 *LISTA DE COMPRAS - NUTRICORE PRO*\n\n`;
       dadosPlanoAtual.refeicoes.forEach(r => { t += `🍽️ *${r.nome_refeicao}*:\n`; r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`); });
-      navigator.clipboard.writeText(t).then(() => alert('Copiado para a área de transferência!'));
+      navigator.clipboard.writeText(t).then(() => alert('Lista copiada para enviar no WhatsApp!'));
     }
 
-    function exportarPlanoPDF() { html2pdf().from(document.getElementById('area-pdf')).save('Plano_Nutricional.pdf'); }
-    function exportarComprasPDF() { html2pdf().from(document.getElementById('area-compras-pdf')).save('Lista_Compras.pdf'); }
+    function exportarPlanoPDF() { 
+      const elem = document.getElementById('area-pdf');
+      const opt = {
+        margin: 10,
+        filename: 'Plano_Nutricional_NutriCore.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(elem).save();
+    }
+
+    function exportarComprasPDF() { 
+      const elem = document.getElementById('area-compras-pdf');
+      const opt = {
+        margin: 10,
+        filename: 'Lista_Compras_NutriCore.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(elem).save();
+    }
 
     document.getElementById('profileForm').addEventListener('submit', (e) => {
       e.preventDefault();
