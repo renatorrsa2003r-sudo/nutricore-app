@@ -306,7 +306,7 @@ def criar_plano(perfil: PerfilUsuarioInput):
               "carboidratos_refeicao_g": 35.0,
               "gorduras_refeicao_g": 14.0,
               "ingredientes": ["3 ovos", "30g de farelo de aveia", "1 banana prata"],
-              "modo_preparo": "Bata os ovos e prepare na frigideira antiaderente. Sirva com a banana e aveia.",
+              "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
               "dica_chef": "Adicione canela para melhorar a saciedade."
             }}
           ]
@@ -382,7 +382,7 @@ def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
       "gorduras_refeicao_g": {dados.refeicao_atual.gorduras_refeicao_g},
       "ingredientes": ["Ingrediente 1 com quantidade precisa", "Ingrediente 2 com quantidade"],
       "modo_preparo": "Instruções práticas de preparo",
-      "dica_chef": "Dica nutricional ou culinária sobre a nova combinação"
+      "dica_chef": "Dica nutricional sobre a nova combinação"
     }}
     Retorne APENAS o JSON puro.
     """
