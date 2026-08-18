@@ -129,7 +129,7 @@
     .avatar-badge { z-index: 3; margin-top: 6px; background: rgba(16,185,129,0.12); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--accent); text-transform: uppercase; }
     .avatar-stat-tag { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-align: center; }
 
-    #loading, #loading-funcional { display: none; text-align: center; padding: 40px 20px; }
+    #loading, #loading-funcional, #loading-treino { display: none; text-align: center; padding: 40px 20px; }
     .spinner { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -157,7 +157,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         color: var(--text-muted);
         cursor: pointer;
         gap: 3px;
@@ -166,7 +166,7 @@
         padding: 0;
       }
       .mob-nav-btn.active { color: var(--accent); font-weight: 700; }
-      .mob-nav-btn i { font-size: 1.15rem; }
+      .mob-nav-btn i { font-size: 1.1rem; }
     }
   </style>
 </head>
@@ -180,6 +180,7 @@
       <li class="nav-item" onclick="switchTab('dieta')"><i class="fa-solid fa-utensils"></i> Plano Alimentar</li>
       <li class="nav-item" onclick="switchTab('evolucao')"><i class="fa-solid fa-chart-line"></i> Evolução & Peso</li>
       <li class="nav-item" onclick="switchTab('funcional')"><i class="fa-solid fa-flask-vial"></i> Nutrição Funcional</li>
+      <li class="nav-item" onclick="switchTab('treino')"><i class="fa-solid fa-dumbbell"></i> Treino</li>
       <li class="nav-item" onclick="switchTab('compras')"><i class="fa-solid fa-basket-shopping"></i> Lista de Compras</li>
       <li class="nav-item" onclick="switchTab('configuracoes')"><i class="fa-solid fa-gear"></i> Configurações</li>
     </ul>
@@ -367,7 +368,55 @@
       <div id="resultado-funcional"></div>
     </section>
 
-    <!-- ABA 5: COMPRAS -->
+    <!-- ABA 5: TREINO -->
+    <section id="tab-treino" class="tab-content">
+      <header><h1>Treino Personalizado</h1></header>
+      <div class="card">
+        <h3>Configurar Série de Exercícios</h3>
+        <form id="formTreino" style="margin-top: 12px;">
+          <div class="grid-2">
+            <div class="form-group"><label>Nível</label>
+              <select id="treino-nivel">
+                <option value="iniciante">Iniciante</option>
+                <option value="intermediario" selected>Intermediário</option>
+                <option value="avancado">Avançado</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Foco</label>
+              <select id="treino-foco">
+                <option value="hipertrofia" selected>Hipertrofia</option>
+                <option value="emagrecimento">Emagrecimento / Cardio</option>
+                <option value="resistencia">Resistência</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label>Equipamento</label>
+              <select id="treino-equipamento">
+                <option value="academia" selected>Academia Completa</option>
+                <option value="peso_corporal">Peso Corporal (Calistenia)</option>
+                <option value="halter_casa">Halteres em Casa</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Tempo (minutos)</label>
+              <select id="treino-tempo">
+                <option value="30">30 min</option>
+                <option value="45" selected>45 min</option>
+                <option value="60">60 min</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fa-solid fa-dumbbell"></i> Gerar Treino com IA</button>
+        </form>
+      </div>
+      <div id="loading-treino">
+        <i class="fa-solid fa-circle-notch spinner"></i>
+        <p style="margin-top: 10px; font-weight: 600;">Montando sua série de exercícios...</p>
+      </div>
+      <div id="resultado-treino"></div>
+    </section>
+
+    <!-- ABA 6: COMPRAS -->
     <section id="tab-compras" class="tab-content">
       <header>
         <h1>Lista de Compras</h1>
@@ -385,7 +434,7 @@
       <div id="area-compras-pdf"><div id="conteudo-lista-compras"></div></div>
     </section>
 
-    <!-- ABA 6: CONFIGURAÇÕES -->
+    <!-- ABA 7: CONFIGURAÇÕES -->
     <section id="tab-configuracoes" class="tab-content">
       <header><h1>Configurações</h1></header>
       <div class="card">
@@ -402,6 +451,7 @@
     <button class="mob-nav-btn" onclick="switchTab('dieta')"><i class="fa-solid fa-utensils"></i><span>Plano</span></button>
     <button class="mob-nav-btn" onclick="switchTab('evolucao')"><i class="fa-solid fa-chart-line"></i><span>Evo</span></button>
     <button class="mob-nav-btn" onclick="switchTab('funcional')"><i class="fa-solid fa-flask-vial"></i><span>Funcional</span></button>
+    <button class="mob-nav-btn" onclick="switchTab('treino')"><i class="fa-solid fa-dumbbell"></i><span>Treino</span></button>
     <button class="mob-nav-btn" onclick="switchTab('compras')"><i class="fa-solid fa-cart-shopping"></i><span>Lista</span></button>
     <button class="mob-nav-btn" onclick="switchTab('configuracoes')"><i class="fa-solid fa-gear"></i><span>Config</span></button>
   </nav>
@@ -418,7 +468,7 @@
       
       document.getElementById('tab-' + tabId).classList.add('active');
       
-      const tabsOrder = ['perfil', 'dieta', 'evolucao', 'funcional', 'compras', 'configuracoes'];
+      const tabsOrder = ['perfil', 'dieta', 'evolucao', 'funcional', 'treino', 'compras', 'configuracoes'];
       const idx = tabsOrder.indexOf(tabId);
       if (idx !== -1) {
         const desktopItems = document.querySelectorAll('.nav-item');
@@ -706,6 +756,67 @@
           </div>`;
       } catch (err) { alert(err.message); }
       finally { loading.style.display = 'none'; }
+    });
+
+    // Treino
+    document.getElementById('formTreino').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nivel = document.getElementById('treino-nivel').value;
+      const foco = document.getElementById('treino-foco').value;
+      const equipamento = document.getElementById('treino-equipamento').value;
+      const tempo_minutos = parseInt(document.getElementById('treino-tempo').value);
+      const loading = document.getElementById('loading-treino');
+      const container = document.getElementById('resultado-treino');
+      loading.style.display = 'block'; container.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/v1/workout/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nivel, foco, equipamento, tempo_minutos })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar treino');
+        
+        let html = `
+          <div class="card" style="border-left: 4px solid var(--accent); margin-top: 14px;">
+            <h3 style="color: var(--accent);">${data.titulo}</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">Foco: ${data.foco_principal}</p>
+          </div>
+          <div class="card">
+            <h3>🔥 Aquecimento</h3>
+            ${data.aquecimento.map(ex => `
+              <div class="food-card" style="margin-top:8px;">
+                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
+                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
+              </div>
+            `).join('')}
+          </div>
+          <div class="card">
+            <h3>💪 Treino Principal</h3>
+            ${data.treino_principal.map(ex => `
+              <div class="food-card" style="margin-top:8px;">
+                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
+                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
+              </div>
+            `).join('')}
+          </div>
+          <div class="card">
+            <h3>🧘 Finalização / Volta à Calma</h3>
+            ${data.finalizacao.map(ex => `
+              <div class="food-card" style="margin-top:8px;">
+                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
+                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.innerHTML = html;
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        loading.style.display = 'none';
+      }
     });
 
     // Lista de Compras
