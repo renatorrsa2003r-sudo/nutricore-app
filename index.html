@@ -88,6 +88,11 @@
     .tag-item { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
     .tag-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
 
+    /* Seletor Rápido de Dias */
+    .day-selector-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .pill-opt { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--text-main); }
+    .pill-opt.selected { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
+
     /* Seletor de Dias Deslizável */
     .days-pill-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: thin; }
     .day-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
@@ -276,26 +281,11 @@
               <div class="form-group"><label>Peso (kg)</label><input type="number" step="0.1" id="peso" value="78.0" required></div>
               <div class="form-group"><label>Altura (cm)</label><input type="number" id="altura" value="178" required></div>
             </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Atividade</label>
-                <select id="nivel_atividade">
-                  <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
-                  <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
-                </select>
-              </div>
-              <div class="form-group"><label>Duração do Plano</label>
-                <select id="dias_plano">
-                  <option value="1">1 Dia (Plano Expresso)</option>
-                  <option value="3">3 Dias</option>
-                  <option value="5">5 Dias (Semana Útil)</option>
-                  <option value="7" selected>7 Dias (1 Semana)</option>
-                  <option value="10">10 Dias</option>
-                  <option value="14">14 Dias (2 Semanas)</option>
-                  <option value="15">15 Dias</option>
-                  <option value="20">20 Dias</option>
-                  <option value="30">30 Dias (Mês Completo)</option>
-                </select>
-              </div>
+            <div class="form-group"><label>Atividade</label>
+              <select id="nivel_atividade">
+                <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
+                <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
+              </select>
             </div>
             <div class="grid-2">
               <div class="form-group"><label>Objetivo</label>
@@ -308,7 +298,28 @@
           </div>
 
           <div class="card">
-            <h3>2. Rotina & Preferências</h3>
+            <h3>2. Duração do Plano Alimentar</h3>
+            <label style="margin-top: 8px;">Selecione uma opção rápida:</label>
+            <div class="day-selector-pills">
+              <span class="pill-opt" onclick="setDiasPlano(1)">1 Dia</span>
+              <span class="pill-opt" onclick="setDiasPlano(3)">3 Dias</span>
+              <span class="pill-opt" onclick="setDiasPlano(5)">5 Dias</span>
+              <span class="pill-opt selected" onclick="setDiasPlano(7)">7 Dias</span>
+              <span class="pill-opt" onclick="setDiasPlano(10)">10 Dias</span>
+              <span class="pill-opt" onclick="setDiasPlano(15)">15 Dias</span>
+              <span class="pill-opt" onclick="setDiasPlano(20)">20 Dias</span>
+              <span class="pill-opt" onclick="setDiasPlano(30)">30 Dias</span>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+              <label>Ou digite a quantidade exata de dias (1 a 30 dias):</label>
+              <input type="number" id="dias_plano" min="1" max="30" value="7" required onchange="sincronizarPillDias(this.value)">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>3. Rotina & Refeições</h3>
             <div class="grid-2" style="margin-top: 12px;">
               <div class="form-group"><label>Acorda</label><input type="time" id="horario_acordar" value="07:00"></div>
               <div class="form-group"><label>Dorme</label><input type="time" id="horario_dormir" value="23:00"></div>
@@ -329,19 +340,20 @@
                 <select id="preferencia"><option value="onivoro">Onívoro</option><option value="vegetariano">Vegetariano</option><option value="vegano">Vegano</option><option value="low_carb">Low-Carb</option></select>
               </div>
             </div>
-            <div class="form-group"><label>Alimentos Favoritos</label><input type="text" id="alimentos_favoritos" placeholder="Ex: Frango, batata doce..."></div>
-            <div class="form-group"><label>Evitar / Restrições</label><input type="text" id="alimentos_evitar" placeholder="Ex: Cebola, pimentão..."></div>
           </div>
-        </div>
 
-        <div class="card">
-          <h3>3. Foco Clínico (Toque para ativar)</h3>
-          <div class="tag-selector" id="container-tags-clinicas">
-            <div class="tag-item" onclick="toggleTag(this)">Sem Glúten</div>
-            <div class="tag-item" onclick="toggleTag(this)">Sem Lactose</div>
-            <div class="tag-item" onclick="toggleTag(this)">Gastrite / Refluxo</div>
-            <div class="tag-item" onclick="toggleTag(this)">Diabetes</div>
-            <div class="tag-item" onclick="toggleTag(this)">Hipertensão</div>
+          <div class="card">
+            <h3>4. Preferências & Foco Clínico</h3>
+            <div class="form-group" style="margin-top: 12px;"><label>Alimentos Favoritos</label><input type="text" id="alimentos_favoritos" placeholder="Ex: Frango, batata doce, banana..."></div>
+            <div class="form-group"><label>Evitar / Restrições</label><input type="text" id="alimentos_evitar" placeholder="Ex: Cebola, pimentão..."></div>
+            <label style="margin-top: 8px;">Condições Clínicas (toque para ativar):</label>
+            <div class="tag-selector" id="container-tags-clinicas">
+              <div class="tag-item" onclick="toggleTag(this)">Sem Glúten</div>
+              <div class="tag-item" onclick="toggleTag(this)">Sem Lactose</div>
+              <div class="tag-item" onclick="toggleTag(this)">Gastrite / Refluxo</div>
+              <div class="tag-item" onclick="toggleTag(this)">Diabetes</div>
+              <div class="tag-item" onclick="toggleTag(this)">Hipertensão</div>
+            </div>
           </div>
         </div>
 
@@ -356,7 +368,7 @@
       <header>
         <h1>Plano Nutricional</h1>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="exportarPlanoPDF()">
+          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="baixarPDFPlanoNutricional()">
             <i class="fas fa-file-pdf"></i> Baixar PDF
           </button>
           <button class="btn-primary btn-action-sm" style="background: var(--accent);" onclick="switchTab('compras')">
@@ -365,7 +377,7 @@
         </div>
       </header>
       
-      <div id="area-pdf">
+      <div>
         <div class="grid-4" style="margin-bottom: 14px;">
           <div class="card metric-box"><label>Calorias/Dia</label><div class="metric-value" id="card-calorias">-- kcal</div></div>
           <div class="card metric-box"><label>Proteínas</label><div class="metric-value" id="card-proteinas">-- g</div></div>
@@ -531,7 +543,7 @@
           <button class="btn-primary btn-action-sm" style="background: #25D366;" onclick="copiarListaWhatsApp()">
             <i class="fab fa-whatsapp"></i> WhatsApp
           </button>
-          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="exportarComprasPDF()">
+          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="baixarPDFListaCompras()">
             <i class="fas fa-file-pdf"></i> PDF
           </button>
         </div>
@@ -542,7 +554,7 @@
           <option value="1">1 Dia</option><option value="3">3 Dias</option><option value="7" selected>7 Dias</option><option value="15">15 Dias</option><option value="20">20 Dias</option><option value="30">30 Dias</option>
         </select>
       </div>
-      <div id="area-compras-pdf"><div id="conteudo-lista-compras"></div></div>
+      <div id="conteudo-lista-compras"></div>
     </section>
 
     <!-- ABA 7: CONFIGURAÇÕES -->
@@ -579,7 +591,7 @@
       <div style="margin-bottom: 14px;">
         <label style="font-size: 0.78rem;">Sugestões rápidas (toque para preencher):</label>
         <div class="chip-container">
-          <span class="chip" onclick="preencherSugestaoTroca('Não gosto do alimento principal, quero outra opção equivalente')">🚫 Não gosto do ingrediente</span>
+          <span class="chip" onclick="preencherSugestaoTroca('Não gosto do ingrediente principal, quero outra opção equivalente')">🚫 Não gosto do ingrediente</span>
           <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção mais rápida e fácil de preparar')">⚡ Mais rápido / prático</span>
           <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção vegetariana para este prato')">🌱 Opção Vegetariana</span>
           <span class="chip" onclick="preencherSugestaoTroca('Quero uma alternativa mais econômica com ingredientes simples')">💰 Mais econômico</span>
@@ -616,11 +628,9 @@
     let historicoEvolucao = [];
     let deferredPrompt;
 
-    // Variáveis de controle de troca
     let trocaContextoDia = 1;
     let trocaContextoRefIdx = 0;
 
-    // Suporte PWA
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -636,6 +646,19 @@
           document.getElementById('install-card').style.display = 'none';
         });
       }
+    }
+
+    function setDiasPlano(qtd) {
+      document.getElementById('dias_plano').value = qtd;
+      sincronizarPillDias(qtd);
+      salvarEstadoPerfil();
+    }
+
+    function sincronizarPillDias(qtd) {
+      document.querySelectorAll('.day-selector-pills .pill-opt').forEach(p => {
+        if (p.innerText.trim().startsWith(qtd + ' ')) p.classList.add('selected');
+        else p.classList.remove('selected');
+      });
     }
 
     function switchTab(tabId) {
@@ -687,7 +710,10 @@
         if (d.peso) document.getElementById('peso').value = d.peso;
         if (d.altura) document.getElementById('altura').value = d.altura;
         if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
-        if (d.dias_plano) document.getElementById('dias_plano').value = d.dias_plano;
+        if (d.dias_plano) {
+          document.getElementById('dias_plano').value = d.dias_plano;
+          sincronizarPillDias(d.dias_plano);
+        }
         if (d.objetivo) document.getElementById('objetivo').value = d.objetivo;
         if (d.ritmo_objetivo) document.getElementById('ritmo_objetivo').value = d.ritmo_objetivo;
         if (d.horario_acordar) document.getElementById('horario_acordar').value = d.horario_acordar;
@@ -1041,7 +1067,6 @@
           intolerancias_saude: tags
         });
 
-        // Atualiza a refeição no estado local
         diaObj.refeicoes[trocaContextoRefIdx] = novaRefeicao;
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(dadosPlanoAtual));
 
@@ -1175,28 +1200,132 @@
       navigator.clipboard.writeText(t).then(() => alert('Lista copiada para enviar no WhatsApp!'));
     }
 
-    function exportarPlanoPDF() { 
-      const elem = document.getElementById('area-pdf');
+    // ==========================================
+    // GERADOR DE PDF BLINDADO
+    // ==========================================
+    function baixarPDFPlanoNutricional() {
+      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
+        alert('Gere um plano alimentar primeiro para poder baixar o PDF!');
+        return;
+      }
+
+      // Constrói um container limpo e sem dependência de fontes/ícones que quebram o canvas
+      const docWrapper = document.createElement('div');
+      docWrapper.style.padding = '20px';
+      docWrapper.style.fontFamily = 'Arial, sans-serif';
+      docWrapper.style.color = '#1e293b';
+      docWrapper.style.background = '#ffffff';
+
+      let conteudoHtml = `
+        <div style="border-bottom: 2px solid #10b981; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h1 style="font-size: 22px; color: #10b981; margin: 0;">NutriCore Pro - Plano Nutricional</h1>
+            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias_total || dadosPlanoAtual.dias.length} Dia(s)</p>
+          </div>
+          <div style="text-align: right; font-size: 11px; color: #64748b;">
+            Meta Diária: <strong>${dadosPlanoAtual.meta_calorica} kcal</strong><br>
+            P: ${dadosPlanoAtual.macros.proteinas_g}g | C: ${dadosPlanoAtual.macros.carboidratos_g}g | G: ${dadosPlanoAtual.macros.gorduras_g}g
+          </div>
+        </div>
+      `;
+
+      dadosPlanoAtual.dias.forEach(d => {
+        conteudoHtml += `
+          <div style="margin-top: 18px; page-break-inside: avoid;">
+            <div style="background: #f1f5f9; padding: 6px 10px; border-left: 4px solid #10b981; font-weight: bold; font-size: 14px; margin-bottom: 8px;">
+              ${d.titulo_dia}
+            </div>
+        `;
+        d.refeicoes.forEach(r => {
+          conteudoHtml += `
+            <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #0f172a;">
+                <span>${r.nome_refeicao} - ${r.titulo_prato} (${r.horario_sugerido})</span>
+                <span style="color: #10b981;">~${r.calorias_alvo} kcal (P:${r.proteinas_refeicao_g}g C:${r.carboidratos_refeicao_g}g G:${r.gorduras_refeicao_g}g)</span>
+              </div>
+              <div style="font-size: 11px; margin-top: 6px; color: #334155;">
+                <strong>Ingredientes:</strong> ${r.ingredientes.join(', ')}
+              </div>
+              <div style="font-size: 11px; margin-top: 4px; color: #475569;">
+                <strong>Preparo:</strong> ${r.modo_preparo}
+              </div>
+            </div>
+          `;
+        });
+        conteudoHtml += `</div>`;
+      });
+
+      docWrapper.innerHTML = conteudoHtml;
+
       const opt = {
-        margin: 10,
+        margin: [10, 10, 10, 10],
         filename: 'Plano_Nutricional_NutriCore.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(elem).save();
+
+      try {
+        html2pdf().set(opt).from(docWrapper).save().catch(err => {
+          console.error(err);
+          abrirJanelaImpressao(conteudoHtml, 'Plano Nutricional');
+        });
+      } catch (e) {
+        abrirJanelaImpressao(conteudoHtml, 'Plano Nutricional');
+      }
     }
 
-    function exportarComprasPDF() { 
-      const elem = document.getElementById('area-compras-pdf');
+    function baixarPDFListaCompras() {
+      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
+        alert('Gere um plano alimentar primeiro!');
+        return;
+      }
+
+      const diasMult = parseInt(document.getElementById('select-dias-compras').value) || 7;
+      let conteudoHtml = `
+        <div style="padding: 20px; font-family: Arial, sans-serif; color: #1e293b;">
+          <h1 style="font-size: 20px; color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
+            NutriCore Pro - Lista de Compras (${diasMult} Dias)
+          </h1>
+      `;
+
+      const dia1 = dadosPlanoAtual.dias[0];
+      dia1.refeicoes.forEach(r => {
+        conteudoHtml += `
+          <div style="margin-top: 14px;">
+            <h3 style="font-size: 14px; color: #0f172a; margin-bottom: 6px;">${r.nome_refeicao}</h3>
+            <ul style="font-size: 12px; line-height: 1.6; color: #334155;">
+              ${r.ingredientes.map(i => `<li>${calcularQtdIngrediente(i, diasMult)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      });
+      conteudoHtml += `</div>`;
+
       const opt = {
-        margin: 10,
+        margin: [10, 10, 10, 10],
         filename: 'Lista_Compras_NutriCore.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(elem).save();
+
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = conteudoHtml;
+
+      try {
+        html2pdf().set(opt).from(tempDiv).save().catch(() => {
+          abrirJanelaImpressao(conteudoHtml, 'Lista de Compras');
+        });
+      } catch (e) {
+        abrirJanelaImpressao(conteudoHtml, 'Lista de Compras');
+      }
+    }
+
+    function abrirJanelaImpressao(html, titulo) {
+      const win = window.open('', '_blank');
+      win.document.write(`<html><head><title>${titulo}</title></head><body onload="window.print()">${html}</body></html>`);
+      win.document.close();
     }
 
     document.getElementById('profileForm').addEventListener('submit', (e) => {
@@ -1206,7 +1335,7 @@
         idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
         peso_kg: parseFloat(document.getElementById('peso').value), altura_cm: parseFloat(document.getElementById('altura').value),
         nivel_atividade: document.getElementById('nivel_atividade').value, objetivo: document.getElementById('objetivo').value,
-        dias_plano: parseInt(document.getElementById('dias_plano').value),
+        dias_plano: parseInt(document.getElementById('dias_plano').value) || 7,
         ritmo_objetivo: document.getElementById('ritmo_objetivo').value, horario_acordar: document.getElementById('horario_acordar').value,
         horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
         refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value), estilo_culinario: document.getElementById('estilo_culinario').value,
