@@ -61,7 +61,7 @@ class PerfilUsuarioInput(BaseModel):
     habilidade_culinaria: Optional[str] = "pratico"
     orcamento: Optional[str] = "medio"
     refeicoes_por_dia: int = Field(4, ge=3, le=6)
-    dias_plano: int = Field(7, ge=1, le=20)
+    dias_plano: int = Field(7, ge=1, le=30)
     gemini_api_key: Optional[str] = None
 
 class Macronutrientes(BaseModel):
@@ -94,6 +94,14 @@ class PlanoAlimentarResponse(BaseModel):
     macros: Macronutrientes
     dias_total: int
     dias: List[DiaPlano]
+
+class TrocaAlimentoInput(BaseModel):
+    refeicao_atual: RefeicaoIA
+    motivo_ou_substituto: str = Field(..., min_length=2)
+    preferencia: Optional[str] = "onivoro"
+    estilo_culinario: Optional[str] = "caseiro_brasil"
+    intolerancias_saude: Optional[List[str]] = []
+    gemini_api_key: Optional[str] = None
 
 class ConsultaFuncionalInput(BaseModel):
     objetivo_especifico: str = Field(..., min_length=3)
@@ -287,7 +295,7 @@ def criar_plano(perfil: PerfilUsuarioInput):
       "dias": [
         {{
           "dia": 1,
-          "titulo_dia": "Dia 1 - Foco em Energia & Adaptação",
+          "titulo_dia": "Dia 1 - Foco em Energia & Saciedade",
           "refeicoes": [
             {{
               "nome_refeicao": "Café da Manhã",
@@ -297,9 +305,9 @@ def criar_plano(perfil: PerfilUsuarioInput):
               "proteinas_refeicao_g": 28.0,
               "carboidratos_refeicao_g": 35.0,
               "gorduras_refeicao_g": 14.0,
-              "ingredientes": ["3 ovos", "30g aveia", "1 banana"],
-              "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
-              "dica_chef": "Adicione canela para saciedade."
+              "ingredientes": ["3 ovos", "30g de farelo de aveia", "1 banana prata"],
+              "modo_preparo": "Bata os ovos e prepare na frigideira antiaderente. Sirva com a banana e aveia.",
+              "dica_chef": "Adicione canela para melhorar a saciedade."
             }}
           ]
         }}
@@ -307,7 +315,7 @@ def criar_plano(perfil: PerfilUsuarioInput):
     }}
 
     Diretrizes para o período ({perfil.dias_plano} dias):
-    - Gere {perfil.dias_plano} dia(s) com variedade inteligente de preparações, respeitando o estilo {perfil.estilo_culinario.value}.
+    - Gere {perfil.dias_plano} dia(s) com variedade inteligente, respeitando o estilo {perfil.estilo_culinario.value}.
     - Calorias Alvo por Dia: ~{meta_calorica} kcal | Macros: {macros.proteinas_g}g Proteína, {macros.carboidratos_g}g Carbo, {macros.gorduras_g}g Gordura.
     - Preferência: {perfil.preferencia.value}.
     - Alimentos favoritos: {perfil.alimentos_favoritos or 'Nenhum'}.
@@ -319,13 +327,11 @@ def criar_plano(perfil: PerfilUsuarioInput):
 
     resultado_json = executar_chamada_ia(client, prompt)
     
-    # Tratamento caso a IA retorne diretamente uma lista ou um dicionário com "dias"
     if isinstance(resultado_json, list):
         lista_dias_raw = resultado_json
     elif isinstance(resultado_json, dict) and "dias" in resultado_json:
         lista_dias_raw = resultado_json["dias"]
     else:
-        # Fallback se retornar refeições soltas
         lista_dias_raw = [{"dia": 1, "titulo_dia": "Dia 1 - Plano Principal", "refeicoes": resultado_json}]
 
     dias_objs = []
@@ -342,6 +348,47 @@ def criar_plano(perfil: PerfilUsuarioInput):
         dias_total=len(dias_objs),
         dias=dias_objs
     )
+
+@app.post("/api/v1/diet/swap-food", response_model=RefeicaoIA)
+def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
+    api_key = obter_chave(dados.gemini_api_key)
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    Atue como nutricionista clínico avançado. O paciente deseja substituir um alimento ou alterar uma refeição específica mantendo a equivalência nutricional.
+
+    REFEIÇÃO ATUAL:
+    - Nome: {dados.refeicao_atual.nome_refeicao}
+    - Prato atual: {dados.refeicao_atual.titulo_prato}
+    - Calorias Alvo: ~{dados.refeicao_atual.calorias_alvo} kcal
+    - Proteínas: ~{dados.refeicao_atual.proteinas_refeicao_g}g | Carbos: ~{dados.refeicao_atual.carboidratos_refeicao_g}g | Gorduras: ~{dados.refeicao_atual.gorduras_refeicao_g}g
+    - Ingredientes atuais: {dados.refeicao_atual.ingredientes}
+
+    PEDIDO DO PACIENTE: "{dados.motivo_ou_substituto}"
+    Preferência: {dados.preferencia} | Estilo: {dados.estilo_culinario}
+    Restrições Clínicas: {', '.join(dados.intolerancias_saude) if dados.intolerancias_saude else 'Nenhuma'}
+
+    REGRAS OBRIGATÓRIAS:
+    1. Atenda exatamente à solicitação do paciente (remova o alimento que ele não gosta ou crie a alternativa solicitada).
+    2. Preserve as calorias e macronutrientes da refeição para não desregular o plano alimentar.
+    3. Retorne estritamente um único objeto JSON:
+    {{
+      "nome_refeicao": "{dados.refeicao_atual.nome_refeicao}",
+      "titulo_prato": "Novo Título Atraente do Prato",
+      "horario_sugerido": "{dados.refeicao_atual.horario_sugerido}",
+      "calorias_alvo": {dados.refeicao_atual.calorias_alvo},
+      "proteinas_refeicao_g": {dados.refeicao_atual.proteinas_refeicao_g},
+      "carboidratos_refeicao_g": {dados.refeicao_atual.carboidratos_refeicao_g},
+      "gorduras_refeicao_g": {dados.refeicao_atual.gorduras_refeicao_g},
+      "ingredientes": ["Ingrediente 1 com quantidade precisa", "Ingrediente 2 com quantidade"],
+      "modo_preparo": "Instruções práticas de preparo",
+      "dica_chef": "Dica nutricional ou culinária sobre a nova combinação"
+    }}
+    Retorne APENAS o JSON puro.
+    """
+
+    resultado_json = executar_chamada_ia(client, prompt)
+    return RefeicaoIA(**resultado_json)
 
 @app.post("/api/v1/nutrition/consult", response_model=ConsultaFuncionalResponse)
 def consultar_nutricao(dados: ConsultaFuncionalInput):
