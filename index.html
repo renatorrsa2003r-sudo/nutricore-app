@@ -6,8 +6,8 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
   <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
 
   <style>
     :root {
@@ -87,6 +87,11 @@
     .tag-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .tag-item { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
     .tag-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
+
+    /* Seletor de Dias Deslizável */
+    .days-pill-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: thin; }
+    .day-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+    .day-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     .meal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-top: 14px; box-shadow: var(--card-shadow); page-break-inside: avoid; }
     .meal-header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
@@ -205,11 +210,21 @@
               <div class="form-group"><label>Peso (kg)</label><input type="number" step="0.1" id="peso" value="78.0" required></div>
               <div class="form-group"><label>Altura (cm)</label><input type="number" id="altura" value="178" required></div>
             </div>
-            <div class="form-group"><label>Atividade</label>
-              <select id="nivel_atividade">
-                <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
-                <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
-              </select>
+            <div class="grid-2">
+              <div class="form-group"><label>Atividade</label>
+                <select id="nivel_atividade">
+                  <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
+                  <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Duração do Plano</label>
+                <select id="dias_plano">
+                  <option value="1">1 Dia (Plano Expresso)</option>
+                  <option value="7" selected>7 Dias (1 Semana Completa)</option>
+                  <option value="15">15 Dias (Ciclo de 2 Semanas)</option>
+                  <option value="20">20 Dias (Ciclo Estendido)</option>
+                </select>
+              </div>
             </div>
             <div class="grid-2">
               <div class="form-group"><label>Objetivo</label>
@@ -231,7 +246,7 @@
               <div class="form-group"><label>Treino</label>
                 <select id="horario_treino"><option value="nenhum">Nenhum</option><option value="manha" selected>Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option></select>
               </div>
-              <div class="form-group"><label>Refeições</label>
+              <div class="form-group"><label>Refeições/Dia</label>
                 <select id="refeicoes_por_dia"><option value="3">3 Refeições</option><option value="4" selected>4 Refeições</option><option value="5">5 Refeições</option></select>
               </div>
             </div>
@@ -278,17 +293,32 @@
           </button>
         </div>
       </header>
+      
       <div id="area-pdf">
         <div class="grid-4" style="margin-bottom: 14px;">
-          <div class="card metric-box"><label>Calorias</label><div class="metric-value" id="card-calorias">-- kcal</div></div>
+          <div class="card metric-box"><label>Calorias/Dia</label><div class="metric-value" id="card-calorias">-- kcal</div></div>
           <div class="card metric-box"><label>Proteínas</label><div class="metric-value" id="card-proteinas">-- g</div></div>
           <div class="card metric-box"><label>Carbos</label><div class="metric-value" id="card-carbos">-- g</div></div>
           <div class="card metric-box"><label>Gorduras</label><div class="metric-value" id="card-gorduras">-- g</div></div>
         </div>
+
         <div id="loading">
           <i class="fas fa-circle-notch spinner"></i>
-          <p style="margin-top: 12px; font-weight: 600;">Calculando porções e receitas personalizadas...</p>
+          <p style="margin-top: 12px; font-weight: 600;">Calculando porções e variando cardápios para o período selecionado...</p>
         </div>
+
+        <!-- SELETOR DE DIAS -->
+        <div id="container-dias-navegacao" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="margin: 0;">Selecione o Dia:</label>
+            <button id="btn-toggle-ver-todos" onclick="alternarVerTodosDias()" style="background:none; border:none; color:var(--accent); font-size:0.82rem; font-weight:700; cursor:pointer;">
+              <i class="fas fa-list"></i> Ver Todos os Dias
+            </button>
+          </div>
+          <div class="days-pill-container" id="pills-dias"></div>
+          <div id="titulo-dia-atual" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); margin: 10px 0 4px 0;"></div>
+        </div>
+
         <div id="lista-refeicoes"></div>
       </div>
     </section>
@@ -436,9 +466,9 @@
         </div>
       </header>
       <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <span style="font-size: 0.85rem; font-weight: 600;">Período:</span>
-        <select id="select-dias-compras" onchange="atualizarMultiplicadorCompras(this.value)" style="width: 140px;">
-          <option value="1">1 Dia</option><option value="3">3 Dias</option><option value="7" selected>7 Dias</option><option value="15">15 Dias</option><option value="30">30 Dias</option>
+        <span style="font-size: 0.85rem; font-weight: 600;">Período Base:</span>
+        <select id="select-dias-compras" onchange="atualizarMultiplicadorCompras(this.value)" style="width: 150px;">
+          <option value="1">1 Dia</option><option value="3">3 Dias</option><option value="7" selected>7 Dias</option><option value="15">15 Dias</option><option value="20">20 Dias</option><option value="30">30 Dias</option>
         </select>
       </div>
       <div id="area-compras-pdf"><div id="conteudo-lista-compras"></div></div>
@@ -474,11 +504,13 @@
 
   <script>
     let dadosPlanoAtual = null;
+    let diaSelecionado = 1;
+    let modoVerTodos = false;
     let chartInstance = null;
     let historicoEvolucao = [];
     let deferredPrompt;
 
-    // Suporte ao Botão de Instalação PWA
+    // Suporte PWA
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -489,10 +521,7 @@
     function instalarApp() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            console.log('App instalado com sucesso');
-          }
+        deferredPrompt.userChoice.then(() => {
           deferredPrompt = null;
           document.getElementById('install-card').style.display = 'none';
         });
@@ -533,7 +562,7 @@
         horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
         refeicoes_por_dia: document.getElementById('refeicoes_por_dia').value, estilo_culinario: document.getElementById('estilo_culinario').value,
         preferencia: document.getElementById('preferencia').value, alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
-        alimentos_evitar: document.getElementById('alimentos_evitar').value, tags: tags
+        alimentos_evitar: document.getElementById('alimentos_evitar').value, dias_plano: document.getElementById('dias_plano').value, tags: tags
       };
       localStorage.setItem('nutricore_user_profile_pro', JSON.stringify(dados));
     }
@@ -548,6 +577,7 @@
         if (d.peso) document.getElementById('peso').value = d.peso;
         if (d.altura) document.getElementById('altura').value = d.altura;
         if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
+        if (d.dias_plano) document.getElementById('dias_plano').value = d.dias_plano;
         if (d.objetivo) document.getElementById('objetivo').value = d.objetivo;
         if (d.ritmo_objetivo) document.getElementById('ritmo_objetivo').value = d.ritmo_objetivo;
         if (d.horario_acordar) document.getElementById('horario_acordar').value = d.horario_acordar;
@@ -566,7 +596,6 @@
       } catch(e) {}
     }
 
-    // Função de requisição segura para o Render
     async function safeFetch(url, payload) {
       const apiKey = localStorage.getItem('gemini_api_key');
       if (apiKey) payload.gemini_api_key = apiKey;
@@ -580,7 +609,7 @@
       const rawText = await res.text();
 
       if (rawText.trim().startsWith('<') || rawText.includes('<!DOCTYPE')) {
-        throw new Error("O servidor do Render está acordando. Aguarde 30 segundos e tente novamente.");
+        throw new Error("O servidor do Render está inicializando. Aguarde 20 segundos e tente novamente.");
       }
 
       let data;
@@ -636,7 +665,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -682,7 +711,7 @@
       document.getElementById('evo-peso').value = '';
       atualizarDashboardEvolucao();
       renderizarAvatar();
-      alert('Salvo com sucesso!');
+      alert('Check-in salvo com sucesso!');
     });
 
     function excluirRegistro(idx) {
@@ -745,49 +774,106 @@
       });
     }
 
-    // Gerar Dieta
+    // Gerar Dieta Multi-Dias
     async function gerarCardapio(payload) {
       const btn = document.getElementById('btn-gerar');
       const loading = document.getElementById('loading');
+      const containerNav = document.getElementById('container-dias-navegacao');
       const lista = document.getElementById('lista-refeicoes');
-      btn.disabled = true; loading.style.display = 'block'; lista.innerHTML = '';
+      
+      btn.disabled = true; loading.style.display = 'block'; containerNav.style.display = 'none'; lista.innerHTML = '';
       switchTab('dieta');
 
       try {
         const data = await safeFetch('/api/v1/diet/generate', payload);
         dadosPlanoAtual = data;
+        diaSelecionado = 1;
+        modoVerTodos = false;
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(data));
-        renderizarDieta(data);
-        renderizarListaCompras(7);
+        renderizarDietaCompleta(data);
+        renderizarListaCompras(parseInt(payload.dias_plano) || 7);
       } catch (err) { alert(err.message); }
       finally { btn.disabled = false; loading.style.display = 'none'; }
     }
 
-    function renderizarDieta(data) {
-      if (!data || !data.refeicoes) return;
+    function renderizarDietaCompleta(data) {
+      if (!data || !data.dias || data.dias.length === 0) return;
       document.getElementById('card-calorias').innerText = data.meta_calorica + ' kcal';
       document.getElementById('card-proteinas').innerText = data.macros.proteinas_g + ' g';
       document.getElementById('card-carbos').innerText = data.macros.carboidratos_g + ' g';
       document.getElementById('card-gorduras').innerText = data.macros.gorduras_g + ' g';
 
-      let html = '';
-      data.refeicoes.forEach(ref => {
-        html += `
-          <div class="meal-card">
-            <div class="meal-header-top">
-              <span class="meal-badge">${ref.nome_refeicao} - ${ref.horario_sugerido} | ~${ref.calorias_alvo}kcal</span>
-              <span class="meal-macros-mini">${ref.proteinas_refeicao_g}g P</span>
-            </div>
-            <div class="meal-title">${ref.titulo_prato}</div>
-            <div class="recipe-section">
-              <h4>Ingredientes:</h4>
-              <ul class="ingredient-list">${ref.ingredientes.map(i => `<li><i class="fas fa-check" style="color:var(--accent)"></i> ${i}</li>`).join('')}</ul>
-            </div>
-            <div class="prep-box"><strong>Preparo:</strong> ${ref.modo_preparo}</div>
-            <div class="tip-box">💡 ${ref.dica_chef}</div>
-          </div>`;
-      });
-      document.getElementById('lista-refeicoes').innerHTML = html;
+      const containerNav = document.getElementById('container-dias-navegacao');
+      const pillsContainer = document.getElementById('pills-dias');
+
+      if (data.dias.length > 1) {
+        containerNav.style.display = 'block';
+        let pillsHtml = '';
+        data.dias.forEach(d => {
+          pillsHtml += `<div class="day-pill ${d.dia === diaSelecionado ? 'active' : ''}" onclick="selecionarDia(${d.dia})">Dia ${d.dia}</div>`;
+        });
+        pillsContainer.innerHTML = pillsHtml;
+      } else {
+        containerNav.style.display = 'none';
+      }
+
+      renderizarRefeicoesExibidas();
+    }
+
+    function selecionarDia(diaNum) {
+      diaSelecionado = diaNum;
+      modoVerTodos = false;
+      document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
+      const pills = document.querySelectorAll('.day-pill');
+      if (pills[diaNum - 1]) pills[diaNum - 1].classList.add('active');
+      renderizarRefeicoesExibidas();
+    }
+
+    function alternarVerTodosDias() {
+      modoVerTodos = !modoVerTodos;
+      document.getElementById('btn-toggle-ver-todos').innerHTML = modoVerTodos 
+        ? `<i class="fas fa-calendar-day"></i> Ver Dia a Dia` 
+        : `<i class="fas fa-list"></i> Ver Todos os Dias`;
+      renderizarRefeicoesExibidas();
+    }
+
+    function renderizarRefeicoesExibidas() {
+      if (!dadosPlanoAtual || !dadosPlanoAtual.dias) return;
+      const lista = document.getElementById('lista-refeicoes');
+      const tituloDia = document.getElementById('titulo-dia-atual');
+
+      if (modoVerTodos) {
+        tituloDia.innerText = `Todos os Dias (${dadosPlanoAtual.dias.length} dias)`;
+        let html = '';
+        dadosPlanoAtual.dias.forEach(d => {
+          html += `<div style="margin-top: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--accent);"><h3 style="color:var(--accent);"><i class="fas fa-calendar-check"></i> ${d.titulo_dia}</h3></div>`;
+          d.refeicoes.forEach(ref => { html += gerarCardRefeicaoHTML(ref); });
+        });
+        lista.innerHTML = html;
+      } else {
+        const diaAtualObj = dadosPlanoAtual.dias.find(d => d.dia === diaSelecionado) || dadosPlanoAtual.dias[0];
+        tituloDia.innerText = diaAtualObj.titulo_dia;
+        let html = '';
+        diaAtualObj.refeicoes.forEach(ref => { html += gerarCardRefeicaoHTML(ref); });
+        lista.innerHTML = html;
+      }
+    }
+
+    function gerarCardRefeicaoHTML(ref) {
+      return `
+        <div class="meal-card">
+          <div class="meal-header-top">
+            <span class="meal-badge">${ref.nome_refeicao} - ${ref.horario_sugerido} | ~${ref.calorias_alvo}kcal</span>
+            <span class="meal-macros-mini">${ref.proteinas_refeicao_g}g P | ${ref.carboidratos_refeicao_g}g C | ${ref.gorduras_refeicao_g}g G</span>
+          </div>
+          <div class="meal-title">${ref.titulo_prato}</div>
+          <div class="recipe-section">
+            <h4>Ingredientes:</h4>
+            <ul class="ingredient-list">${ref.ingredientes.map(i => `<li><i class="fas fa-check" style="color:var(--accent)"></i> ${i}</li>`).join('')}</ul>
+          </div>
+          <div class="prep-box"><strong>Preparo:</strong> ${ref.modo_preparo}</div>
+          <div class="tip-box">💡 ${ref.dica_chef}</div>
+        </div>`;
     }
 
     // Consulta Funcional
@@ -871,7 +957,7 @@
       finally { loading.style.display = 'none'; }
     });
 
-    // Lista de Compras
+    // Lista de Compras Multi-Dias
     function calcularQtdIngrediente(ing, mult) {
       if (mult === 1) return ing;
       return ing.replace(/(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|unidades?|un|fatias?|colheres?|ovos?|cs)/gi, (m, n, u) => `<strong>${Math.round(parseFloat(n.replace(',','.'))*mult*10)/10} ${u}</strong>`);
@@ -879,12 +965,16 @@
 
     function renderizarListaCompras(dias = 7) {
       const container = document.getElementById('conteudo-lista-compras');
-      if (!dadosPlanoAtual || !dadosPlanoAtual.refeicoes) {
+      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
         container.innerHTML = `<div class="card" style="text-align:center; padding:30px;"><p style="color:var(--text-muted)">Gere um plano alimentar primeiro!</p></div>`;
         return;
       }
+
+      // Consolida refeições de todos os dias gerados
       let html = `<div class="shopping-container">`;
-      dadosPlanoAtual.refeicoes.forEach((ref, idx) => {
+      const primeiroDia = dadosPlanoAtual.dias[0];
+
+      primeiroDia.refeicoes.forEach((ref, idx) => {
         html += `<div class="shopping-card"><div class="shopping-card-title">${ref.nome_refeicao}</div><div>`;
         ref.ingredientes.forEach((ing, i) => {
           const id = `chk_${idx}_${i}`;
@@ -898,9 +988,10 @@
     function atualizarMultiplicadorCompras(dias) { renderizarListaCompras(parseInt(dias)); }
     
     function copiarListaWhatsApp() {
-      if (!dadosPlanoAtual) return alert('Gere um plano primeiro!');
+      if (!dadosPlanoAtual || !dadosPlanoAtual.dias) return alert('Gere um plano primeiro!');
       let t = `🛒 *LISTA DE COMPRAS - NUTRICORE PRO*\n\n`;
-      dadosPlanoAtual.refeicoes.forEach(r => { t += `🍽️ *${r.nome_refeicao}*:\n`; r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`); });
+      const dia1 = dadosPlanoAtual.dias[0];
+      dia1.refeicoes.forEach(r => { t += `🍽️ *${r.nome_refeicao}*:\n`; r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`); });
       navigator.clipboard.writeText(t).then(() => alert('Lista copiada para enviar no WhatsApp!'));
     }
 
@@ -935,6 +1026,7 @@
         idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
         peso_kg: parseFloat(document.getElementById('peso').value), altura_cm: parseFloat(document.getElementById('altura').value),
         nivel_atividade: document.getElementById('nivel_atividade').value, objetivo: document.getElementById('objetivo').value,
+        dias_plano: parseInt(document.getElementById('dias_plano').value),
         ritmo_objetivo: document.getElementById('ritmo_objetivo').value, horario_acordar: document.getElementById('horario_acordar').value,
         horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
         refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value), estilo_culinario: document.getElementById('estilo_culinario').value,
@@ -955,7 +1047,11 @@
       const th = localStorage.getItem('nutricore_theme') || 'light'; document.getElementById('tema').value = th; alterarTema(th);
       carregarEstadoPerfil(); carregarEvolucao();
       const sd = localStorage.getItem('nutricore_v2_diet');
-      if (sd) { dadosPlanoAtual = JSON.parse(sd); renderizarDieta(dadosPlanoAtual); renderizarListaCompras(7); }
+      if (sd) { 
+        dadosPlanoAtual = JSON.parse(sd); 
+        renderizarDietaCompleta(dadosPlanoAtual); 
+        renderizarListaCompras(7); 
+      }
     };
   </script>
 </body>
