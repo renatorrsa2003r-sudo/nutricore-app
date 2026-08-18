@@ -1,7 +1,105 @@
-"icons": [
-      {
-        "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
-        "sizes": "192x192",
-        "type": "image/png"
-      }
-    ]
+{
+  "id": "/?source=pwa",
+  "name": "NutriCore Pro - Nutrição & Performance IA",
+  "short_name": "NutriCore",
+  "description": "Plataforma avançada de nutrição personalizada, protocolos funcionais, treinos e acompanhamento metabólico com inteligência artificial.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle",
+    "medical"
+  ],
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Plano Alimentar",
+      "short_name": "Dieta",
+      "description": "Acessar cardápio e metas de macronutrientes",
+      "url": "/#dieta",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Treino Personalizado",
+      "short_name": "Treino",
+      "description": "Gerar série de exercícios com IA",
+      "url": "/#treino",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Lista de Compras",
+      "short_name": "Compras",
+      "description": "Ver ingredientes e lista da feira",
+      "url": "/#compras",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Check-in de Evolução",
+      "short_name": "Peso",
+      "description": "Registrar peso e atualizar avatar metabólico",
+      "url": "/#evolucao",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063169.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Painel NutriCore Pro Mobile"
+    }
+  ],
+  "prefer_related_applications": false
+}
