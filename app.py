@@ -135,14 +135,14 @@ class TreinoResponse(BaseModel):
     finalizacao: List[Exercicio]
 
 # ==========================================
-# 2. UTILITÁRIOS E ROTAÇÃO DE MODELOS IA
+# 2. MODELOS ATIVOS E EXECUTOR IA
 # ==========================================
 
-# Modelos oficiais e suportados na API
+# Lista de modelos oficiais e vigentes na API do Gemini
 MODELOS_ATIVOS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite"
+    "gemini-3.5-flash-lite",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash"
 ]
 
 def extrair_json_seguro(texto: str):
@@ -162,9 +162,9 @@ def obter_chave(api_key_param: Optional[str]):
     return key.strip()
 
 def executar_chamada_ia(client: genai.Client, prompt: str):
-    """Executa a chamada com rotação entre modelos ativos e retentativa em caso de sobrecarga."""
+    """Percorre os modelos disponíveis e trata instabilidade momentânea."""
     ultimo_erro = None
-    
+
     for modelo in MODELOS_ATIVOS:
         for tentativa in range(2):
             try:
@@ -181,15 +181,15 @@ def executar_chamada_ia(client: genai.Client, prompt: str):
             except Exception as e:
                 erro_str = str(e)
                 ultimo_erro = erro_str
-                # Se for erro 404 (modelo não suportado), pula logo para o próximo modelo da lista
+                # Se for erro 404 (modelo indisponível na região/conta), avança direto para o próximo modelo
                 if "404" in erro_str or "NOT_FOUND" in erro_str:
                     break
-                # Se for sobrecarga (503 ou 429), espera brevemente antes de tentar novamente
-                time.sleep(1.2)
+                # Se for 503 ou 429, aguarda 1 segundo antes de tentar novamente
+                time.sleep(1.0)
 
     raise HTTPException(
         status_code=503,
-        detail=f"Servidores de IA temporariamente ocupados. Tente novamente em alguns segundos. Detalhes: {ultimo_erro}"
+        detail=f"Erro ao comunicar com a IA. Detalhes: {ultimo_erro}"
     )
 
 # ==========================================
@@ -278,7 +278,7 @@ def criar_plano(perfil: PerfilUsuarioInput):
     prompt = f"""
     Atue como nutricionista clínico avançado e crie um plano alimentar diário completo e estruturado.
     Formato OBRIGATÓRIO: Retorne estritamente um array JSON com {perfil.refeicoes_por_dia} refeições.
-    Exemplo do formato:
+    Exemplo:
     [
       {{
         "nome_refeicao": "Café da Manhã",
@@ -290,14 +290,14 @@ def criar_plano(perfil: PerfilUsuarioInput):
         "gorduras_refeicao_g": 14.0,
         "ingredientes": ["3 ovos inteiros", "30g de farelo de aveia", "1 banana prata"],
         "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva acompanhado da banana com aveia.",
-        "dica_chef": "Adicione canela a gosto para ajudar na saciedade."
+        "dica_chef": "Adicione canela a gosto para saciedade prolongada."
       }}
     ]
 
     Dados do Paciente:
     - Peso: {perfil.peso_kg}kg | Altura: {perfil.altura_cm}cm | Idade: {perfil.idade} anos | Sexo: {perfil.sexo.value}
     - Meta Calórica Total: {meta_calorica} kcal
-    - Macros Alvo: Proteínas {macros.proteinas_g}g | Carbos {macros.carboidratos_g}g | Gorduras {macros.gorduras_g}g
+    - Macros: Proteínas {macros.proteinas_g}g | Carbos {macros.carboidratos_g}g | Gorduras {macros.gorduras_g}g
     - Quantidade exata de refeições: {perfil.refeicoes_por_dia}
     - Estilo Culinário: {perfil.estilo_culinario.value} | Padrão: {perfil.preferencia.value}
     - Horários: Acorda {perfil.horario_acordar}, Dorme {perfil.horario_dormir}, Treino: {perfil.horario_treino}
@@ -325,18 +325,18 @@ def consultar_nutricao(dados: ConsultaFuncionalInput):
     client = genai.Client(api_key=api_key)
 
     prompt = f"""
-    Atue como nutricionista funcional e especialista em compostos bioativos.
+    Atue como nutricionista funcional e especialista em fitoterapia/compostos bioativos.
     Gere um protocolo terapêutico em JSON para o objetivo: "{dados.objetivo_especifico}".
     Padrão alimentar: {dados.preferencia}.
 
     Estrutura JSON obrigatória:
     {{
       "titulo_estrategia": "Título profissional da estratégia",
-      "explicacao_fisiologica": "Explicação científica clara e acessível",
+      "explicacao_fisiologica": "Explicação científica clara e concisa",
       "alimentos_chave": [
         {{"alimento": "Nome do alimento", "porcao_sugerida": "Quantidade", "por_que_funciona": "Motivo bioquímico", "como_consumir": "Como incluir na rotina"}}
       ],
-      "alimentos_evitar": ["Alimento 1", "Alimento 2"],
+      "alimentos_evitar": ["Item 1", "Item 2"],
       "receita_rapida": {{
         "titulo": "Nome da receita funcional ou shot",
         "tempo_preparo": "3 min",
