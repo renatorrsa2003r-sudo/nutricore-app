@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -134,8 +135,14 @@ class TreinoResponse(BaseModel):
     finalizacao: List[Exercicio]
 
 # ==========================================
-# 2. UTILITÁRIOS E SEGURANÇA
+# 2. UTILITÁRIOS, SEGURANÇA E FALLBACK IA
 # ==========================================
+
+MODELOS_FALLBACK = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+]
 
 def extrair_json_seguro(texto: str):
     texto = texto.strip()
@@ -149,12 +156,34 @@ def obter_chave(api_key_param: Optional[str]):
     if not key or key.strip() == "":
         raise HTTPException(
             status_code=400,
-            detail="Chave API do Gemini não configurada! Vá na aba Configurações e insira sua chave."
+            detail="Chave API do Gemini não configurada! Insira sua chave na aba Configurações."
         )
     return key.strip()
 
+def executar_chamada_ia(client: genai.Client, prompt: str):
+    """Executa a chamada com retentativa e rotação de modelos caso ocorra 503/sobrecarga."""
+    ultimo_erro = None
+    for modelo in MODELOS_FALLBACK:
+        for tentativa in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=modelo,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(response_mime_type="application/json")
+                )
+                if response and response.text:
+                    return extrair_json_seguro(response.text)
+            except Exception as e:
+                ultimo_erro = e
+                time.sleep(1)
+    
+    raise HTTPException(
+        status_code=503,
+        detail=f"Os servidores de IA estão com sobrecarga momentânea. Tente novamente em instantes. ({str(ultimo_erro)})"
+    )
+
 # ==========================================
-# 3. LÓGICA DE CÁLCULO E IA
+# 3. LÓGICA DE CÁLCULO
 # ==========================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -195,111 +224,6 @@ def calcular_metas(p: PerfilUsuarioInput):
     )
     return round(tmb, 1), round(tdee, 1), round(meta_calorica, 1), macros
 
-def gerar_com_gemini(perfil: PerfilUsuarioInput, meta_calorica: float, macros: Macronutrientes, api_key: str) -> List[RefeicaoIA]:
-    client = genai.Client(api_key=api_key)
-    prompt = f"""
-    Atue como nutricionista clínico avançado e crie um plano alimentar diário completo e estruturado.
-    Formato OBRIGATÓRIO: Retorne estritamente um array JSON com {perfil.refeicoes_por_dia} refeições.
-    Exemplo do objeto:
-    [
-      {{
-        "nome_refeicao": "Café da Manhã",
-        "titulo_prato": "Ovos Mexidos com Aveia e Fruta",
-        "horario_sugerido": "07:30",
-        "calorias_alvo": 420.0,
-        "proteinas_refeicao_g": 28.0,
-        "carboidratos_refeicao_g": 35.0,
-        "gorduras_refeicao_g": 14.0,
-        "ingredientes": ["3 ovos inteiros", "30g de farelo de aveia", "1 banana prata", "1 colher de café de azeite"],
-        "modo_preparo": "Bata os ovos, aqueça a frigideira com o azeite e mexa até o ponto desejado. Consuma com a banana e aveia.",
-        "dica_chef": "Adicione canela na banana para melhorar a sensibilidade à insulina."
-      }}
-    ]
-
-    Dados do Paciente:
-    - Peso: {perfil.peso_kg}kg | Altura: {perfil.altura_cm}cm | Idade: {perfil.idade} anos | Sexo: {perfil.sexo.value}
-    - Meta Calórica Total: {meta_calorica} kcal
-    - Metas de Macronutrientes: Proteínas {macros.proteinas_g}g | Carboidratos {macros.carboidratos_g}g | Gorduras {macros.gorduras_g}g
-    - Quantidade exata de refeições: {perfil.refeicoes_por_dia}
-    - Estilo Culinário: {perfil.estilo_culinario.value} | Preferência: {perfil.preferencia.value}
-    - Horários: Acorda às {perfil.horario_acordar}, Dorme às {perfil.horario_dormir}, Treino: {perfil.horario_treino}
-    - Alimentos favoritos: {perfil.alimentos_favoritos or 'Nenhum específico'}
-    - Alimentos a evitar / Aversões: {perfil.alimentos_evitar or 'Nenhum'}
-    - Foco Clínico / Intolerâncias: {', '.join(perfil.intolerancias_saude) if perfil.intolerancias_saude else 'Nenhuma'}
-
-    Retorne APENAS o JSON puro.
-    """
-    response = client.models.generate_content(
-        model='gemini-3.7-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
-    )
-    dados = extrair_json_seguro(response.text)
-    return [RefeicaoIA(**ref) for ref in dados]
-
-def gerar_consulta_funcional(dados_input: ConsultaFuncionalInput, api_key: str) -> ConsultaFuncionalResponse:
-    client = genai.Client(api_key=api_key)
-    prompt = f"""
-    Atue como nutricionista funcional e especialista em fitoterapia/bioquímica.
-    Crie um protocolo terapêutico em JSON para o objetivo: "{dados_input.objetivo_especifico}".
-    Preferencia: {dados_input.preferencia}.
-
-    Estrutura JSON:
-    {{
-      "titulo_estrategia": "Título profissional do protocolo",
-      "explicacao_fisiologica": "Explicação detalhada e acessível sobre a via bioquímica",
-      "alimentos_chave": [
-        {{"alimento": "Cúrcuma com Pimenta Preta", "porcao_sugerida": "1 colher de chá + pitada", "por_que_funciona": "A piperina aumenta a absorção da curcumina em 2000%", "como_consumir": "Em shot matinal ou no almoço"}}
-      ],
-      "alimentos_evitar": ["Açúcar refinado", "Gorduras hidrogenadas"],
-      "receita_rapida": {{
-        "titulo": "Shot Anti-inflamatório Matinal",
-        "tempo_preparo": "3 min",
-        "ingredientes": ["50ml de água morna", "1/2 limão espremido", "1 colher de café de cúrcuma"],
-        "modo_preparo": "Misture tudo em um copo pequeno e beba imediatamente em jejum.",
-        "quando_tomar": "Ao acordar, 15 min antes do café da manhã"
-      }}
-    }}
-    Retorne APENAS o JSON.
-    """
-    response = client.models.generate_content(
-        model='gemini-3.7-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
-    )
-    dados = extrair_json_seguro(response.text)
-    return ConsultaFuncionalResponse(**dados)
-
-def gerar_treino_com_gemini(dados: TreinoInput, api_key: str) -> TreinoResponse:
-    client = genai.Client(api_key=api_key)
-    prompt = f"""
-    Crie uma rotina de treinamento personalizada estritamente em JSON.
-    Nível: {dados.nivel} | Foco: {dados.foco} | Equipamento disponível: {dados.equipamento} | Duração: {dados.tempo_minutos} minutos.
-
-    Estrutura JSON obrigatória:
-    {{
-      "titulo": "Título da Sessão de Treino",
-      "foco_principal": "{dados.foco}",
-      "aquecimento": [
-        {{"nome": "Mobilidade articular e polichinelos", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Aqueça bem ombros e quadris"}}
-      ],
-      "treino_principal": [
-        {{"nome": "Agachamento Livre / Goblet Squat", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Mantenha a coluna neutra e joelhos alinhados com as pontas dos pés"}}
-      ],
-      "finalizacao": [
-        {{"nome": "Prancha Abdominal Isométrica", "series": "3", "repeticoes": "45s", "descanso": "45s", "dica_tecnica": "Contraia glúteos e abdômen firmemente"}}
-      ]
-    }}
-    Retorne APENAS o JSON.
-    """
-    response = client.models.generate_content(
-        model='gemini-3.7-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
-    )
-    dados = extrair_json_seguro(response.text)
-    return TreinoResponse(**dados)
-
 # ==========================================
 # 4. APP FASTAPI E ROTAS
 # ==========================================
@@ -313,11 +237,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Erro interno do servidor: {str(exc)}"}
+        content={"detail": f"Erro interno: {str(exc)}"}
     )
 
 @app.get("/manifest.json")
@@ -332,21 +263,108 @@ def home():
 def criar_plano(perfil: PerfilUsuarioInput):
     tmb, tdee, meta_calorica, macros = calcular_metas(perfil)
     api_key = obter_chave(perfil.gemini_api_key)
-    refeicoes = gerar_com_gemini(perfil, meta_calorica, macros, api_key)
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    Atue como nutricionista clínico e crie um plano alimentar diário completo e estruturado.
+    Formato OBRIGATÓRIO: Retorne estritamente um array JSON com {perfil.refeicoes_por_dia} refeições.
+    Exemplo do objeto:
+    [
+      {{
+        "nome_refeicao": "Café da Manhã",
+        "titulo_prato": "Ovos Mexidos com Aveia e Fruta",
+        "horario_sugerido": "07:30",
+        "calorias_alvo": 420.0,
+        "proteinas_refeicao_g": 28.0,
+        "carboidratos_refeicao_g": 35.0,
+        "gorduras_refeicao_g": 14.0,
+        "ingredientes": ["3 ovos inteiros", "30g de farelo de aveia", "1 banana prata"],
+        "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
+        "dica_chef": "Adicione canela a gosto para potencializar o sabor."
+      }}
+    ]
+
+    Dados do Paciente:
+    - Peso: {perfil.peso_kg}kg | Altura: {perfil.altura_cm}cm | Idade: {perfil.idade} anos | Sexo: {perfil.sexo.value}
+    - Meta Calórica Total: {meta_calorica} kcal
+    - Metas de Macronutrientes: Proteínas {macros.proteinas_g}g | Carboidratos {macros.carboidratos_g}g | Gorduras {macros.gorduras_g}g
+    - Quantidade exata de refeições: {perfil.refeicoes_por_dia}
+    - Estilo Culinário: {perfil.estilo_culinario.value} | Preferência: {perfil.preferencia.value}
+    - Horários: Acorda às {perfil.horario_acordar}, Dorme às {perfil.horario_dormir}, Treino: {perfil.horario_treino}
+    - Alimentos favoritos: {perfil.alimentos_favoritos or 'Nenhum'}
+    - Alimentos a evitar: {perfil.alimentos_evitar or 'Nenhum'}
+    - Foco Clínico: {', '.join(perfil.intolerancias_saude) if perfil.intolerancias_saude else 'Nenhuma'}
+
+    Retorne APENAS o JSON puro.
+    """
+
+    dados_refeicoes = executar_chamada_ia(client, prompt)
+    refeicoes_objs = [RefeicaoIA(**ref) for ref in dados_refeicoes]
+
     return PlanoAlimentarResponse(
         tmb=tmb,
         tdee=tdee,
         meta_calorica=meta_calorica,
         macros=macros,
-        refeicoes=refeicoes
+        refeicoes=refeicoes_objs
     )
 
 @app.post("/api/v1/nutrition/consult", response_model=ConsultaFuncionalResponse)
 def consultar_nutricao(dados: ConsultaFuncionalInput):
     api_key = obter_chave(dados.gemini_api_key)
-    return gerar_consulta_funcional(dados, api_key)
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    Atue como nutricionista funcional. Gere um protocolo terapêutico em JSON para: "{dados.objetivo_especifico}".
+    Preferencia: {dados.preferencia}.
+
+    Estrutura JSON:
+    {{
+      "titulo_estrategia": "Título da estratégia",
+      "explicacao_fisiologica": "Explicação científica clara e concisa",
+      "alimentos_chave": [
+        {{"alimento": "Nome do alimento", "porcao_sugerida": "Quantidade", "por_que_funciona": "Motivo", "como_consumir": "Modo de uso"}}
+      ],
+      "alimentos_evitar": ["Item 1", "Item 2"],
+      "receita_rapida": {{
+        "titulo": "Nome da receita funcional",
+        "tempo_preparo": "3 min",
+        "ingredientes": ["Ingrediente 1", "Ingrediente 2"],
+        "modo_preparo": "Instruções de preparo",
+        "quando_tomar": "Horário sugerido"
+      }}
+    }}
+    Retorne APENAS o JSON.
+    """
+
+    dados_funcionais = executar_chamada_ia(client, prompt)
+    return ConsultaFuncionalResponse(**dados_funcionais)
 
 @app.post("/api/v1/workout/generate", response_model=TreinoResponse)
 def criar_treino(dados: TreinoInput):
     api_key = obter_chave(dados.gemini_api_key)
-    return gerar_treino_com_gemini(dados, api_key)
+    client = genai.Client(api_key=api_key)
+
+    prompt = f"""
+    Crie uma rotina de treinamento personalizada estritamente em JSON.
+    Nível: {dados.nivel} | Foco: {dados.foco} | Equipamento: {dados.equipamento} | Duração: {dados.tempo_minutos} minutos.
+
+    Estrutura JSON obrigatória:
+    {{
+      "titulo": "Título da Sessão de Treino",
+      "foco_principal": "{dados.foco}",
+      "aquecimento": [
+        {{"nome": "Exercício de aquecimento", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Orientação"}}
+      ],
+      "treino_principal": [
+        {{"nome": "Exercício principal", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Orientação de execução"}}
+      ],
+      "finalizacao": [
+        {{"nome": "Exercício de finalização / Core", "series": "3", "repeticoes": "45s", "descanso": "45s", "dica_tecnica": "Orientação"}}
+      ]
+    }}
+    Retorne APENAS o JSON.
+    """
+
+    dados_treino = executar_chamada_ia(client, prompt)
+    return TreinoResponse(**dados_treino)
