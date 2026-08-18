@@ -6,8 +6,8 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
-  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
   <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
-  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
@@ -119,10 +119,7 @@
       margin-top: 10px;
       transition: all 0.2s;
     }
-    .btn-swap-meal:hover {
-      background: var(--accent);
-      color: #fff;
-    }
+    .btn-swap-meal:hover { background: var(--accent); color: #fff; }
 
     .recipe-section { margin-top: 10px; }
     .recipe-section h4 { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; }
@@ -140,11 +137,12 @@
     .food-card .portion { font-size: 0.72rem; background: rgba(16, 185, 129, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
     .food-card p { font-size: 0.85rem; line-height: 1.4; margin-top: 4px; }
 
-    .shopping-container { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 16px; }
-    .shopping-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-    .shopping-card-title { font-size: 1.05rem; font-weight: 700; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px; }
-    .shopping-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; user-select: none; }
-    .shopping-item:hover { background: var(--bg-main); }
+    /* Estilos da Lista de Compras Multi-Dias */
+    .shopping-day-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
+    .shopping-day-title { font-size: 1.05rem; font-weight: 700; color: var(--accent); border-bottom: 2px solid rgba(16, 185, 129, 0.2); padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .shopping-meal-title { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin: 10px 0 6px 0; text-transform: uppercase; }
+    .shopping-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; user-select: none; background: var(--bg-main); border: 1px solid var(--border); font-size: 0.88rem; }
+    .shopping-item:hover { border-color: var(--accent); }
     .shopping-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
     .shopping-item.checked span { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
 
@@ -162,50 +160,12 @@
     .avatar-stat-tag { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-align: center; }
 
     /* MODAL DE SUBSTITUIÇÃO */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal-overlay.active {
-      display: flex;
-    }
-    .modal-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      max-width: 480px;
-      width: 100%;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      animation: fadeIn 0.2s ease-out;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .modal-header h3 {
-      font-size: 1.1rem;
-      color: var(--accent);
-    }
-    .modal-close-btn {
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      color: var(--text-muted);
-      cursor: pointer;
-    }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.2s ease-out; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .modal-header h3 { font-size: 1.1rem; color: var(--accent); }
+    .modal-close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
 
     #loading, #loading-funcional, #loading-treino, #loading-troca { display: none; text-align: center; padding: 30px 20px; }
     .spinner { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
@@ -281,25 +241,25 @@
               <div class="form-group"><label>Peso (kg)</label><input type="number" step="0.1" id="peso" value="78.0" required></div>
               <div class="form-group"><label>Altura (cm)</label><input type="number" id="altura" value="178" required></div>
             </div>
-            <div class="form-group"><label>Atividade</label>
-              <select id="nivel_atividade">
-                <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
-                <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
-              </select>
-            </div>
             <div class="grid-2">
+              <div class="form-group"><label>Atividade</label>
+                <select id="nivel_atividade">
+                  <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
+                  <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
+                </select>
+              </div>
               <div class="form-group"><label>Objetivo</label>
                 <select id="objetivo"><option value="perda_peso">Emagrecimento</option><option value="manutencao">Manutenção</option><option value="hipertrofia">Hipertrofia</option></select>
               </div>
-              <div class="form-group"><label>Ritmo</label>
-                <select id="ritmo_objetivo"><option value="conservador">Conservador</option><option value="moderado" selected>Moderado</option><option value="agressivo">Agressivo</option></select>
-              </div>
+            </div>
+            <div class="form-group"><label>Ritmo do Objetivo</label>
+              <select id="ritmo_objetivo"><option value="conservador">Conservador</option><option value="moderado" selected>Moderado</option><option value="agressivo">Agressivo</option></select>
             </div>
           </div>
 
           <div class="card">
             <h3>2. Duração do Plano Alimentar</h3>
-            <label style="margin-top: 8px;">Selecione uma opção rápida:</label>
+            <label style="margin-top: 8px;">Opções Rápidas:</label>
             <div class="day-selector-pills">
               <span class="pill-opt" onclick="setDiasPlano(1)">1 Dia</span>
               <span class="pill-opt" onclick="setDiasPlano(3)">3 Dias</span>
@@ -548,12 +508,20 @@
           </button>
         </div>
       </header>
-      <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <span style="font-size: 0.85rem; font-weight: 600;">Multiplicador de Dias:</span>
-        <select id="select-dias-compras" onchange="atualizarMultiplicadorCompras(this.value)" style="width: 150px;">
-          <option value="1">1 Dia</option><option value="3">3 Dias</option><option value="7" selected>7 Dias</option><option value="15">15 Dias</option><option value="20">20 Dias</option><option value="30">30 Dias</option>
-        </select>
+
+      <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <span style="font-size: 0.88rem; font-weight: 700; color: var(--accent);" id="resumo-dias-compras">
+          <i class="fas fa-basket-shopping"></i> Ingredientes de Todos os Dias
+        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="margin: 0; font-size: 0.85rem;">Modo de Visualização:</label>
+          <select id="select-modo-compras" onchange="alternarModoVisualizacaoCompras(this.value)" style="width: auto; padding: 6px 10px;">
+            <option value="dias" selected>Separado por Dias (Dia 1, 2, ...)</option>
+            <option value="consolidado">Lista Consolidada (Mercado)</option>
+          </select>
+        </div>
       </div>
+
       <div id="conteudo-lista-compras"></div>
     </section>
 
@@ -624,6 +592,7 @@
     let dadosPlanoAtual = null;
     let diaSelecionado = 1;
     let modoVerTodos = false;
+    let modoCompras = 'dias'; // 'dias' ou 'consolidado'
     let chartInstance = null;
     let historicoEvolucao = [];
     let deferredPrompt;
@@ -679,6 +648,9 @@
 
       if (tabId === 'evolucao') {
         setTimeout(() => { renderizarGrafico(); renderizarAvatar(); }, 50);
+      }
+      if (tabId === 'compras') {
+        renderizarListaComprasMultiDias();
       }
     }
 
@@ -801,7 +773,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -927,7 +899,7 @@
         modoVerTodos = false;
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(data));
         renderizarDietaCompleta(data);
-        renderizarListaCompras(parseInt(payload.dias_plano) || 7);
+        renderizarListaComprasMultiDias();
       } catch (err) { alert(err.message); }
       finally { btn.disabled = false; loading.style.display = 'none'; }
     }
@@ -1071,7 +1043,7 @@
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(dadosPlanoAtual));
 
         renderizarRefeicoesExibidas();
-        renderizarListaCompras(parseInt(document.getElementById('dias_plano').value) || 7);
+        renderizarListaComprasMultiDias();
         fecharModalTroca();
         alert('Refeição substituída com sucesso mantendo o equilíbrio nutricional!');
       } catch (err) {
@@ -1163,53 +1135,116 @@
       finally { loading.style.display = 'none'; }
     });
 
-    // Lista de Compras Multi-Dias
-    function calcularQtdIngrediente(ing, mult) {
-      if (mult === 1) return ing;
-      return ing.replace(/(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|unidades?|un|fatias?|colheres?|ovos?|cs)/gi, (m, n, u) => `<strong>${Math.round(parseFloat(n.replace(',','.'))*mult*10)/10} ${u}</strong>`);
+    // ==========================================
+    // LISTA DE COMPRAS REAL MULTI-DIAS
+    // ==========================================
+
+    function alternarModoVisualizacaoCompras(modo) {
+      modoCompras = modo;
+      renderizarListaComprasMultiDias();
     }
 
-    function renderizarListaCompras(dias = 7) {
+    function renderizarListaComprasMultiDias() {
       const container = document.getElementById('conteudo-lista-compras');
+      const resumoLabel = document.getElementById('resumo-dias-compras');
       if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
         container.innerHTML = `<div class="card" style="text-align:center; padding:30px;"><p style="color:var(--text-muted)">Gere um plano alimentar primeiro!</p></div>`;
         return;
       }
 
-      let html = `<div class="shopping-container">`;
-      const primeiroDia = dadosPlanoAtual.dias[0];
+      const totalDias = dadosPlanoAtual.dias.length;
+      resumoLabel.innerHTML = `<i class="fas fa-basket-shopping"></i> Plano com ${totalDias} dia(s) mapeado(s)`;
 
-      primeiroDia.refeicoes.forEach((ref, idx) => {
-        html += `<div class="shopping-card"><div class="shopping-card-title">${ref.nome_refeicao}</div><div>`;
-        ref.ingredientes.forEach((ing, i) => {
-          const id = `chk_${idx}_${i}`;
-          html += `<label class="shopping-item" id="label_${id}"><input type="checkbox" id="${id}" onchange="document.getElementById('label_${id}').classList.toggle('checked', this.checked)"><span>${calcularQtdIngrediente(ing, dias)}</span></label>`;
+      let html = '';
+
+      if (modoCompras === 'dias') {
+        // Renderiza dia a dia com suas respectivas refeições
+        dadosPlanoAtual.dias.forEach((d) => {
+          html += `
+            <div class="shopping-day-block">
+              <div class="shopping-day-title">
+                <span><i class="fas fa-calendar-day"></i> ${d.titulo_dia}</span>
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">Dia ${d.dia}</span>
+              </div>
+          `;
+
+          d.refeicoes.forEach((ref, refIdx) => {
+            html += `<div class="shopping-meal-title"><i class="fas fa-utensils"></i> ${ref.nome_refeicao} - ${ref.titulo_prato}</div>`;
+            ref.ingredientes.forEach((ing, ingIdx) => {
+              const id = `chk_d${d.dia}_r${refIdx}_i${ingIdx}`;
+              html += `
+                <label class="shopping-item" id="label_${id}">
+                  <input type="checkbox" id="${id}" onchange="document.getElementById('label_${id}').classList.toggle('checked', this.checked)">
+                  <span>${ing}</span>
+                </label>
+              `;
+            });
+          });
+
+          html += `</div>`;
         });
-        html += `</div></div>`;
-      });
-      container.innerHTML = html + `</div>`;
+      } else {
+        // Modo Consolidado (Junta e organiza todos os itens únicos para o mercado)
+        const todosIngredientes = [];
+        dadosPlanoAtual.dias.forEach(d => {
+          d.refeicoes.forEach(r => {
+            r.ingredientes.forEach(i => {
+              todosIngredientes.push({ texto: i, dia: d.dia, refeicao: r.nome_refeicao });
+            });
+          });
+        });
+
+        html += `
+          <div class="shopping-day-block">
+            <div class="shopping-day-title">
+              <span><i class="fas fa-cart-flatbed"></i> Lista Geral do Mercado (${todosIngredientes.length} itens no total)</span>
+            </div>
+            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">Todos os ingredientes somados de todos os ${totalDias} dias do seu plano:</p>
+        `;
+
+        todosIngredientes.forEach((item, idx) => {
+          const id = `chk_consolidado_${idx}`;
+          html += `
+            <label class="shopping-item" id="label_${id}">
+              <input type="checkbox" id="${id}" onchange="document.getElementById('label_${id}').classList.toggle('checked', this.checked)">
+              <span>${item.texto} <small style="color:var(--text-muted); font-size:0.75rem;">(Dia ${item.dia} - ${item.refeicao})</small></span>
+            </label>
+          `;
+        });
+
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
     }
 
-    function atualizarMultiplicadorCompras(dias) { renderizarListaCompras(parseInt(dias)); }
-    
     function copiarListaWhatsApp() {
       if (!dadosPlanoAtual || !dadosPlanoAtual.dias) return alert('Gere um plano primeiro!');
-      let t = `🛒 *LISTA DE COMPRAS - NUTRICORE PRO*\n\n`;
-      const dia1 = dadosPlanoAtual.dias[0];
-      dia1.refeicoes.forEach(r => { t += `🍽️ *${r.nome_refeicao}*:\n`; r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`); });
-      navigator.clipboard.writeText(t).then(() => alert('Lista copiada para enviar no WhatsApp!'));
+      let t = `🛒 *LISTA DE COMPRAS - NUTRICORE PRO*\n`;
+      t += `📅 Período Completo: ${dadosPlanoAtual.dias.length} Dia(s)\n\n`;
+
+      dadosPlanoAtual.dias.forEach(d => {
+        t += `📌 *${d.titulo_dia.toUpperCase()}*\n`;
+        d.refeicoes.forEach(r => {
+          t += `🍽️ _${r.nome_refeicao}_ (${r.titulo_prato}):\n`;
+          r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`);
+        });
+        t += `\n`;
+      });
+
+      navigator.clipboard.writeText(t).then(() => alert('Lista completa de todos os dias copiada para enviar no WhatsApp!'));
     }
 
     // ==========================================
-    // GERADOR DE PDF BLINDADO
+    // GERADORES DE PDF BLINDADOS
     // ==========================================
+
     function baixarPDFPlanoNutricional() {
       if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
         alert('Gere um plano alimentar primeiro para poder baixar o PDF!');
         return;
       }
 
-      // Constrói um container limpo e sem dependência de fontes/ícones que quebram o canvas
       const docWrapper = document.createElement('div');
       docWrapper.style.padding = '20px';
       docWrapper.style.fontFamily = 'Arial, sans-serif';
@@ -1220,7 +1255,7 @@
         <div style="border-bottom: 2px solid #10b981; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <h1 style="font-size: 22px; color: #10b981; margin: 0;">NutriCore Pro - Plano Nutricional</h1>
-            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias_total || dadosPlanoAtual.dias.length} Dia(s)</p>
+            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias.length} Dia(s)</p>
           </div>
           <div style="text-align: right; font-size: 11px; color: #64748b;">
             Meta Diária: <strong>${dadosPlanoAtual.meta_calorica} kcal</strong><br>
@@ -1241,7 +1276,7 @@
             <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa;">
               <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #0f172a;">
                 <span>${r.nome_refeicao} - ${r.titulo_prato} (${r.horario_sugerido})</span>
-                <span style="color: #10b981;">~${r.calorias_alvo} kcal (P:${r.proteinas_refeicao_g}g C:${r.carboidratos_refeicao_g}g G:${r.gorduras_refeicao_g}g)</span>
+                <span style="color: #10b981;">~${r.calorias_alvo} kcal</span>
               </div>
               <div style="font-size: 11px; margin-top: 6px; color: #334155;">
                 <strong>Ingredientes:</strong> ${r.ingredientes.join(', ')}
@@ -1266,8 +1301,7 @@
       };
 
       try {
-        html2pdf().set(opt).from(docWrapper).save().catch(err => {
-          console.error(err);
+        html2pdf().set(opt).from(docWrapper).save().catch(() => {
           abrirJanelaImpressao(conteudoHtml, 'Plano Nutricional');
         });
       } catch (e) {
@@ -1281,25 +1315,33 @@
         return;
       }
 
-      const diasMult = parseInt(document.getElementById('select-dias-compras').value) || 7;
       let conteudoHtml = `
-        <div style="padding: 20px; font-family: Arial, sans-serif; color: #1e293b;">
+        <div style="padding: 20px; font-family: Arial, sans-serif; color: #1e293b; background:#fff;">
           <h1 style="font-size: 20px; color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
-            NutriCore Pro - Lista de Compras (${diasMult} Dias)
+            NutriCore Pro - Lista de Compras Completa (${dadosPlanoAtual.dias.length} Dias)
           </h1>
       `;
 
-      const dia1 = dadosPlanoAtual.dias[0];
-      dia1.refeicoes.forEach(r => {
+      dadosPlanoAtual.dias.forEach(d => {
         conteudoHtml += `
-          <div style="margin-top: 14px;">
-            <h3 style="font-size: 14px; color: #0f172a; margin-bottom: 6px;">${r.nome_refeicao}</h3>
-            <ul style="font-size: 12px; line-height: 1.6; color: #334155;">
-              ${r.ingredientes.map(i => `<li>${calcularQtdIngrediente(i, diasMult)}</li>`).join('')}
-            </ul>
-          </div>
+          <div style="margin-top: 14px; page-break-inside: avoid;">
+            <div style="background: #f1f5f9; padding: 6px 10px; border-left: 4px solid #10b981; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
+              ${d.titulo_dia}
+            </div>
         `;
+        d.refeicoes.forEach(r => {
+          conteudoHtml += `
+            <div style="margin-left: 8px; margin-bottom: 6px;">
+              <strong style="font-size: 12px; color: #0f172a;">${r.nome_refeicao} (${r.titulo_prato}):</strong>
+              <ul style="font-size: 11px; margin: 4px 0 6px 18px; color: #334155;">
+                ${r.ingredientes.map(i => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        });
+        conteudoHtml += `</div>`;
       });
+
       conteudoHtml += `</div>`;
 
       const opt = {
@@ -1359,7 +1401,7 @@
       if (sd) { 
         dadosPlanoAtual = JSON.parse(sd); 
         renderizarDietaCompleta(dadosPlanoAtual); 
-        renderizarListaCompras(7); 
+        renderizarListaComprasMultiDias(); 
       }
     };
   </script>
