@@ -93,12 +93,32 @@
     .day-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
     .day-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    .meal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-top: 14px; box-shadow: var(--card-shadow); page-break-inside: avoid; }
+    .meal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-top: 14px; box-shadow: var(--card-shadow); page-break-inside: avoid; position: relative; }
     .meal-header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
     .meal-badge { background: rgba(16, 185, 129, 0.1); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; }
     .meal-macros-mini { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
     .meal-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
     
+    .btn-swap-meal {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+    .btn-swap-meal:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
     .recipe-section { margin-top: 10px; }
     .recipe-section h4 { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; }
     .ingredient-list { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -136,7 +156,53 @@
     .avatar-badge { z-index: 3; margin-top: 6px; background: rgba(16,185,129,0.12); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--accent); text-transform: uppercase; }
     .avatar-stat-tag { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-align: center; }
 
-    #loading, #loading-funcional, #loading-treino { display: none; text-align: center; padding: 40px 20px; }
+    /* MODAL DE SUBSTITUIÇÃO */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      animation: fadeIn 0.2s ease-out;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .modal-header h3 {
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    #loading, #loading-funcional, #loading-treino, #loading-troca { display: none; text-align: center; padding: 30px 20px; }
     .spinner { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -220,9 +286,14 @@
               <div class="form-group"><label>Duração do Plano</label>
                 <select id="dias_plano">
                   <option value="1">1 Dia (Plano Expresso)</option>
-                  <option value="7" selected>7 Dias (1 Semana Completa)</option>
-                  <option value="15">15 Dias (Ciclo de 2 Semanas)</option>
-                  <option value="20">20 Dias (Ciclo Estendido)</option>
+                  <option value="3">3 Dias</option>
+                  <option value="5">5 Dias (Semana Útil)</option>
+                  <option value="7" selected>7 Dias (1 Semana)</option>
+                  <option value="10">10 Dias</option>
+                  <option value="14">14 Dias (2 Semanas)</option>
+                  <option value="15">15 Dias</option>
+                  <option value="20">20 Dias</option>
+                  <option value="30">30 Dias (Mês Completo)</option>
                 </select>
               </div>
             </div>
@@ -466,7 +537,7 @@
         </div>
       </header>
       <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <span style="font-size: 0.85rem; font-weight: 600;">Período Base:</span>
+        <span style="font-size: 0.85rem; font-weight: 600;">Multiplicador de Dias:</span>
         <select id="select-dias-compras" onchange="atualizarMultiplicadorCompras(this.value)" style="width: 150px;">
           <option value="1">1 Dia</option><option value="3">3 Dias</option><option value="7" selected>7 Dias</option><option value="15">15 Dias</option><option value="20">20 Dias</option><option value="30">30 Dias</option>
         </select>
@@ -491,6 +562,41 @@
     </section>
   </main>
 
+  <!-- MODAL DE SUBSTITUIÇÃO DE ALIMENTO / REFEIÇÃO -->
+  <div class="modal-overlay" id="modalTrocaAlimento">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fas fa-arrows-rotate"></i> Trocar Alimento / Prato</h3>
+        <button class="modal-close-btn" onclick="fecharModalTroca()">&times;</button>
+      </div>
+      <p id="modal-subtitulo-refeicao" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;"></p>
+      
+      <div class="form-group">
+        <label>O que você deseja mudar nessa refeição?</label>
+        <textarea id="input-motivo-troca" rows="3" placeholder="Ex: Não gosto de ovos, quero trocar por outra opção..."></textarea>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 0.78rem;">Sugestões rápidas (toque para preencher):</label>
+        <div class="chip-container">
+          <span class="chip" onclick="preencherSugestaoTroca('Não gosto do alimento principal, quero outra opção equivalente')">🚫 Não gosto do ingrediente</span>
+          <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção mais rápida e fácil de preparar')">⚡ Mais rápido / prático</span>
+          <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção vegetariana para este prato')">🌱 Opção Vegetariana</span>
+          <span class="chip" onclick="preencherSugestaoTroca('Quero uma alternativa mais econômica com ingredientes simples')">💰 Mais econômico</span>
+        </div>
+      </div>
+
+      <div id="loading-troca">
+        <i class="fas fa-circle-notch spinner"></i>
+        <p style="margin-top: 8px; font-weight: 600; font-size: 0.85rem;">Recalculando substituição com IA...</p>
+      </div>
+
+      <button class="btn-primary" id="btn-confirmar-troca" onclick="confirmarTrocaRefeicao()">
+        <i class="fas fa-wand-magic-sparkles"></i> Confirmar Substituição
+      </button>
+    </div>
+  </div>
+
   <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA CELULAR -->
   <nav class="mobile-nav">
     <button class="mob-nav-btn active" onclick="switchTab('perfil')"><i class="fas fa-user"></i><span>Perfil</span></button>
@@ -509,6 +615,10 @@
     let chartInstance = null;
     let historicoEvolucao = [];
     let deferredPrompt;
+
+    // Variáveis de controle de troca
+    let trocaContextoDia = 1;
+    let trocaContextoRefIdx = 0;
 
     // Suporte PWA
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -845,21 +955,21 @@
       if (modoVerTodos) {
         tituloDia.innerText = `Todos os Dias (${dadosPlanoAtual.dias.length} dias)`;
         let html = '';
-        dadosPlanoAtual.dias.forEach(d => {
+        dadosPlanoAtual.dias.forEach((d) => {
           html += `<div style="margin-top: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--accent);"><h3 style="color:var(--accent);"><i class="fas fa-calendar-check"></i> ${d.titulo_dia}</h3></div>`;
-          d.refeicoes.forEach(ref => { html += gerarCardRefeicaoHTML(ref); });
+          d.refeicoes.forEach((ref, refIdx) => { html += gerarCardRefeicaoHTML(ref, d.dia, refIdx); });
         });
         lista.innerHTML = html;
       } else {
         const diaAtualObj = dadosPlanoAtual.dias.find(d => d.dia === diaSelecionado) || dadosPlanoAtual.dias[0];
         tituloDia.innerText = diaAtualObj.titulo_dia;
         let html = '';
-        diaAtualObj.refeicoes.forEach(ref => { html += gerarCardRefeicaoHTML(ref); });
+        diaAtualObj.refeicoes.forEach((ref, refIdx) => { html += gerarCardRefeicaoHTML(ref, diaAtualObj.dia, refIdx); });
         lista.innerHTML = html;
       }
     }
 
-    function gerarCardRefeicaoHTML(ref) {
+    function gerarCardRefeicaoHTML(ref, diaNum, refIdx) {
       return `
         <div class="meal-card">
           <div class="meal-header-top">
@@ -873,7 +983,78 @@
           </div>
           <div class="prep-box"><strong>Preparo:</strong> ${ref.modo_preparo}</div>
           <div class="tip-box">💡 ${ref.dica_chef}</div>
+          
+          <button class="btn-swap-meal" onclick="abrirModalTroca(${diaNum}, ${refIdx})">
+            <i class="fas fa-arrows-rotate"></i> Trocar Alimento / Refeição
+          </button>
         </div>`;
+    }
+
+    // Modal de Troca
+    function abrirModalTroca(diaNum, refIdx) {
+      trocaContextoDia = diaNum;
+      trocaContextoRefIdx = refIdx;
+
+      const diaObj = dadosPlanoAtual.dias.find(d => d.dia === diaNum);
+      const ref = diaObj ? diaObj.refeicoes[refIdx] : null;
+
+      if (!ref) return;
+
+      document.getElementById('modal-subtitulo-refeicao').innerText = `Refeição: ${ref.nome_refeicao} - ${ref.titulo_prato}`;
+      document.getElementById('input-motivo-troca').value = '';
+      document.getElementById('loading-troca').style.display = 'none';
+      document.getElementById('btn-confirmar-troca').disabled = false;
+      document.getElementById('modalTrocaAlimento').classList.add('active');
+    }
+
+    function fecharModalTroca() {
+      document.getElementById('modalTrocaAlimento').classList.remove('active');
+    }
+
+    function preencherSugestaoTroca(texto) {
+      document.getElementById('input-motivo-troca').value = texto;
+    }
+
+    async function confirmarTrocaRefeicao() {
+      const motivo = document.getElementById('input-motivo-troca').value.trim();
+      if (!motivo) {
+        alert('Por favor, digite o que você gostaria de mudar nesta refeição.');
+        return;
+      }
+
+      const diaObj = dadosPlanoAtual.dias.find(d => d.dia === trocaContextoDia);
+      const refAtual = diaObj ? diaObj.refeicoes[trocaContextoRefIdx] : null;
+      if (!refAtual) return;
+
+      const loading = document.getElementById('loading-troca');
+      const btn = document.getElementById('btn-confirmar-troca');
+      loading.style.display = 'block';
+      btn.disabled = true;
+
+      try {
+        const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
+        const novaRefeicao = await safeFetch('/api/v1/diet/swap-food', {
+          refeicao_atual: refAtual,
+          motivo_ou_substituto: motivo,
+          preferencia: document.getElementById('preferencia').value,
+          estilo_culinario: document.getElementById('estilo_culinario').value,
+          intolerancias_saude: tags
+        });
+
+        // Atualiza a refeição no estado local
+        diaObj.refeicoes[trocaContextoRefIdx] = novaRefeicao;
+        localStorage.setItem('nutricore_v2_diet', JSON.stringify(dadosPlanoAtual));
+
+        renderizarRefeicoesExibidas();
+        renderizarListaCompras(parseInt(document.getElementById('dias_plano').value) || 7);
+        fecharModalTroca();
+        alert('Refeição substituída com sucesso mantendo o equilíbrio nutricional!');
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        loading.style.display = 'none';
+        btn.disabled = false;
+      }
     }
 
     // Consulta Funcional
@@ -970,7 +1151,6 @@
         return;
       }
 
-      // Consolida refeições de todos os dias gerados
       let html = `<div class="shopping-container">`;
       const primeiroDia = dadosPlanoAtual.dias[0];
 
