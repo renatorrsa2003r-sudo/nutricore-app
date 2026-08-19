@@ -105,6 +105,11 @@ class AuthResponse(BaseModel):
     token: str
     user: dict
 
+class UserDataSyncInput(BaseModel):
+    profile: Optional[dict] = None
+    diet: Optional[dict] = None
+    evolution: Optional[list] = None
+
 class SexoEnum(str, Enum):
     MASCULINO = "masculino"
     FEMININO = "feminino"
@@ -444,6 +449,59 @@ def logout_usuario(authorization: Optional[str] = Header(None)):
         conn.commit()
         conn.close()
     return {"message": "Desconectado com sucesso."}
+
+# --- SINCRONIZAÇÃO DE DADOS DO USUÁRIO NA NUVEM ---
+
+@app.get("/api/v1/user/sync-data")
+def obter_dados_usuario(authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return {"profile": None, "diet": None, "evolution": None}
+    
+    return {
+        "profile": json.loads(row[0]) if row[0] else None,
+        "diet": json.loads(row[1]) if row[1] else None,
+        "evolution": json.loads(row[2]) if row[2] else None
+    }
+
+@app.post("/api/v1/user/sync-data")
+def salvar_dados_usuario(dados: UserDataSyncInput, authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+
+    p_json = json.dumps(dados.profile) if dados.profile is not None else (row[0] if row else None)
+    d_json = json.dumps(dados.diet) if dados.diet is not None else (row[1] if row else None)
+    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row[2] if row else None)
+
+    c.execute('''
+        INSERT INTO user_data (user_id, profile_json, diet_json, evolution_json)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            profile_json = excluded.profile_json,
+            diet_json = excluded.diet_json,
+            evolution_json = excluded.evolution_json
+    ''', (user["id"], p_json, d_json, e_json))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
 
 # --- ROTAS NUTRICIONAIS E TREINOS ---
 
