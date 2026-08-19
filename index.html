@@ -5,19 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NutriCore Pro</title>
 
-  <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <!-- SUPORTE A PWA -->
+  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
-  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- FONTAWESOME & BIBLIOTECAS -->
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js)" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- Gerador de QR Code Visual -->
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js](https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js)"></script>
 
   <style>
     :root {
@@ -55,10 +57,9 @@
     .nav-item:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
     .nav-item.active { background-color: var(--accent); color: #fff; }
 
-    /* Barra de Navegação Inferior para Celular */
+    /* Barra Mobile */
     .mobile-nav { display: none; }
 
-    /* Conteúdo Principal */
     main { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 12px; }
     header h1 { font-size: 1.5rem; font-weight: 700; }
@@ -144,28 +145,21 @@
     .avatar-badge { z-index: 3; margin-top: 6px; background: rgba(16,185,129,0.12); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--accent); text-transform: uppercase; }
     .avatar-stat-tag { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-align: center; }
 
-    /* MODAL DE SUBSTITUIÇÃO */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; }
+    /* MODAIS */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; }
     .modal-overlay.active { display: flex; }
-    .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 480px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.2s ease-out; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .modal-header h3 { font-size: 1.1rem; color: var(--accent); }
-    .modal-close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
+    .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 480px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); animation: fadeIn 0.2s ease-out; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h3 { font-size: 1.15rem; color: var(--accent); }
+    .modal-close-btn { background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; }
+
+    /* TELA DE PLANOS & PAYWALL */
+    .pricing-card { background: var(--bg-main); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .pricing-card.selected { border-color: var(--accent); background: rgba(16, 185, 129, 0.08); }
+    .pricing-badge { position: absolute; top: 12px; right: 12px; background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
 
     /* TELA DE AUTENTICAÇÃO / LOGIN */
-    #auth-screen { 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: #0f172a; 
-      z-index: 99999; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      padding: 16px; 
-    }
+    #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
     .auth-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px 24px; max-width: 400px; width: 100%; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
     .auth-toggle-btns { display: flex; background: #0f172a; padding: 4px; border-radius: 10px; margin: 20px 0; }
     .auth-toggle-btn { flex: 1; padding: 10px; background: none; border: none; color: #94a3b8; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
@@ -254,6 +248,7 @@
       <div>
         <div style="font-size: 0.72rem; color: #94a3b8;">Conectado como:</div>
         <span id="user-name-display">Usuário</span>
+        <div id="user-status-badge" style="font-size:0.68rem; color:#f59e0b; font-weight:bold; margin-top:2px;">Trial Grátis</div>
       </div>
       <button onclick="fazerLogout()" style="background:none; border:none; color:#ef4444; cursor:pointer;" title="Sair da conta">
         <i class="fas fa-right-from-bracket"></i>
@@ -281,9 +276,14 @@
             <i class="fas fa-cloud-arrow-up"></i> Sincronizado na Nuvem
           </span>
         </div>
-        <button class="btn-primary btn-action-sm" style="background:#ef4444; display:flex;" onclick="fazerLogout()">
-          <i class="fas fa-right-from-bracket"></i> Sair da Conta
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-primary btn-action-sm" id="btn-assinar-top" style="background:#f59e0b;" onclick="abrirModalPlanos()">
+            <i class="fas fa-crown"></i> Assinar Pro
+          </button>
+          <button class="btn-primary btn-action-sm" style="background:#ef4444;" onclick="fazerLogout()">
+            <i class="fas fa-right-from-bracket"></i> Sair
+          </button>
+        </div>
       </header>
 
       <form id="profileForm">
@@ -407,7 +407,6 @@
           <p style="margin-top: 12px; font-weight: 600;">Calculando porções e variando cardápios para o período selecionado...</p>
         </div>
 
-        <!-- SELETOR DE DIAS -->
         <div id="container-dias-navegacao" style="display: none;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <label style="margin: 0;">Selecione o Dia:</label>
@@ -599,6 +598,72 @@
     </section>
   </main>
 
+  <!-- MODAL DE PLANOS / PAYWALL -->
+  <div class="modal-overlay" id="modalPlanos">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3><i class="fas fa-crown" style="color:#f59e0b;"></i> Desbloqueie o NutriCore Pro</h3>
+        <button class="modal-close-btn" onclick="fecharModalPlanos()">&times;</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+        Acesse planos de 1 a 30 dias, substituição de alimentos ilimitada com IA, treinos avançados e exportações em PDF.
+      </p>
+
+      <!-- Opção Mensal -->
+      <div class="pricing-card selected" id="card-plan-mensal" onclick="selecionarPlanoAssinatura('mensal')">
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Plano Mensal</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 4px;">R$ 29,90 <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ mês</span></div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Acesso completo, renovação mensal sem fidelidade.</div>
+      </div>
+
+      <!-- Opção Anual -->
+      <div class="pricing-card" id="card-plan-anual" onclick="selecionarPlanoAssinatura('anual')">
+        <div class="pricing-badge">Economize 58%</div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Plano Anual</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 4px;">R$ 149,90 <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ ano (R$ 12,49/mês)</span></div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Acesso total por 1 ano com desconto exclusivo.</div>
+      </div>
+
+      <button class="btn-primary" id="btn-gerar-pix" style="margin-top: 10px; background: #10b981;" onclick="iniciarCheckoutPix()">
+        <i class="fas fa-qrcode"></i> Pagar com Pix Instantâneo
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE PAGAMENTO PIX QR CODE -->
+  <div class="modal-overlay" id="modalPix">
+    <div class="modal-box" style="text-align: center;">
+      <div class="modal-header">
+        <h3><i class="fas fa-qrcode" style="color:var(--accent);"></i> Pagamento Pix</h3>
+        <button class="modal-close-btn" onclick="fecharModalPix()">&times;</button>
+      </div>
+      
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+        Abra o app do seu banco e escaneie o QR Code abaixo ou copie a chave:
+      </p>
+
+      <div id="pix-qrcode-container" style="display:flex; justify-content:center; padding:12px; background:#fff; border-radius:8px; width:180px; height:180px; margin:0 auto 14px auto;"></div>
+
+      <div class="form-group" style="text-align:left;">
+        <label>Código Pix Copia e Cola:</label>
+        <textarea id="pix-copia-cola" rows="2" readonly style="font-size:0.75rem; font-family:monospace; background:var(--bg-main);"></textarea>
+      </div>
+
+      <button class="btn-primary btn-action-sm" style="width:100% !important; margin-bottom: 8px;" onclick="copiarPixChave()">
+        <i class="fas fa-copy"></i> Copiar Código Pix
+      </button>
+
+      <div style="font-size: 0.78rem; color: var(--text-muted); display:flex; align-items:center; justify-content:center; gap:6px; margin-top:10px;">
+        <i class="fas fa-spinner fa-spin" style="color:var(--accent);"></i> Aguardando confirmação do banco...
+      </div>
+
+      <!-- Botão de simulação para você testar a liberação em 1 clique -->
+      <button onclick="testarAprovacaoImediata()" style="background:none; border:none; color:var(--text-muted); font-size:0.72rem; margin-top:14px; text-decoration:underline; cursor:pointer;">
+        Simular aprovação (Modo Teste)
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL DE SUBSTITUIÇÃO DE ALIMENTO / REFEIÇÃO -->
   <div class="modal-overlay" id="modalTrocaAlimento">
     <div class="modal-box">
@@ -634,7 +699,7 @@
     </div>
   </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA CELULAR -->
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR MOBILE -->
   <nav class="mobile-nav">
     <button class="mob-nav-btn active" onclick="switchTab('perfil')"><i class="fas fa-user"></i><span>Perfil</span></button>
     <button class="mob-nav-btn" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i><span>Plano</span></button>
@@ -656,6 +721,10 @@
     let chartInstance = null;
     let historicoEvolucao = [];
     let deferredPrompt;
+
+    let planoEscolhidoCheckout = 'mensal';
+    let idPagamentoAtual = null;
+    let intervalPollingPix = null;
 
     let trocaContextoDia = 1;
     let trocaContextoRefIdx = 0;
@@ -757,6 +826,19 @@
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
 
+      // Atualiza badge de assinatura
+      const badge = document.getElementById('user-status-badge');
+      const btnAssinar = document.getElementById('btn-assinar-top');
+      if (usuarioAtual?.subscription_status === 'active') {
+        badge.innerText = '⭐ Assinante PRO';
+        badge.style.color = '#10b981';
+        if (btnAssinar) btnAssinar.style.display = 'none';
+      } else {
+        badge.innerText = 'Trial Grátis';
+        badge.style.color = '#f59e0b';
+        if (btnAssinar) btnAssinar.style.display = 'flex';
+      }
+
       const token = localStorage.getItem('nutricore_token');
       try {
         const res = await fetch('/api/v1/user/sync-data', {
@@ -795,7 +877,6 @@
         carregarEvolucaoLocal();
       }
 
-      // Ativa escuta em todos os campos do formulário para auto-save contínuo
       ativarAutoSavePerfil();
     }
 
@@ -817,6 +898,106 @@
       dadosPlanoAtual = null;
       historicoEvolucao = [];
       document.getElementById('auth-screen').style.display = 'flex';
+    }
+
+    // --- SISTEMA DE PAGAMENTO E PAYWALL ---
+
+    function abrirModalPlanos() {
+      document.getElementById('modalPlanos').classList.add('active');
+    }
+
+    function fecharModalPlanos() {
+      document.getElementById('modalPlanos').classList.remove('active');
+    }
+
+    function selecionarPlanoAssinatura(tipo) {
+      planoEscolhidoCheckout = tipo;
+      document.getElementById('card-plan-mensal').classList.toggle('selected', tipo === 'mensal');
+      document.getElementById('card-plan-anual').classList.toggle('selected', tipo === 'anual');
+    }
+
+    async function iniciarCheckoutPix() {
+      const btn = document.getElementById('btn-gerar-pix');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Gerando Pix...`;
+
+      try {
+        const data = await safeFetch('/api/v1/payment/create-pix', { plan_type: planoEscolhidoCheckout });
+        idPagamentoAtual = data.payment_id;
+
+        fecharModalPlanos();
+        abrirModalPix(data.qr_code, data.qr_code_base64);
+
+        // Inicia polling de verificação a cada 3 segundos
+        clearInterval(intervalPollingPix);
+        intervalPollingPix = setInterval(verificarPagamentoPixAtivo, 3000);
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-qrcode"></i> Pagar com Pix Instantâneo`;
+      }
+    }
+
+    function abrirModalPix(qrCodeText, qrCodeBase64) {
+      document.getElementById('pix-copia-cola').value = qrCodeText;
+      const container = document.getElementById('pix-qrcode-container');
+      container.innerHTML = '';
+
+      if (qrCodeBase64) {
+        container.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" style="width:100%; height:100%; object-fit:contain;" />`;
+      } else {
+        new QRCode(container, {
+          text: qrCodeText,
+          width: 160,
+          height: 160,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      document.getElementById('modalPix').classList.add('active');
+    }
+
+    function fecharModalPix() {
+      clearInterval(intervalPollingPix);
+      document.getElementById('modalPix').classList.remove('active');
+    }
+
+    function copiarPixChave() {
+      const txt = document.getElementById('pix-copia-cola');
+      txt.select();
+      navigator.clipboard.writeText(txt.value).then(() => {
+        alert('Código Pix copiado! Abra o aplicativo do seu banco para pagar.');
+      });
+    }
+
+    async function verificarPagamentoPixAtivo() {
+      if (!idPagamentoAtual) return;
+      try {
+        const res = await safeFetch(`/api/v1/payment/check-status/${idPagamentoAtual}`, {});
+        if (res.status === 'approved') {
+          clearInterval(intervalPollingPix);
+          fecharModalPix();
+          usuarioAtual.subscription_status = 'active';
+          document.getElementById('user-status-badge').innerText = '⭐ Assinante PRO';
+          document.getElementById('user-status-badge').style.color = '#10b981';
+          const btnAssinar = document.getElementById('btn-assinar-top');
+          if (btnAssinar) btnAssinar.style.display = 'none';
+          alert('🎉 Pagamento confirmado! Seu plano NutriCore PRO foi liberado com sucesso.');
+        }
+      } catch(e) {}
+    }
+
+    async function testarAprovacaoImediata() {
+      if (!idPagamentoAtual) return;
+      try {
+        await fetch(`/api/v1/payment/simulate-approval/${idPagamentoAtual}`, { method: 'POST' });
+        await verificarPagamentoPixAtivo();
+      } catch(e) {
+        alert('Erro ao simular aprovação.');
+      }
     }
 
     // Suporte PWA
@@ -884,7 +1065,6 @@
       document.getElementById('formFuncional').dispatchEvent(new Event('submit')); 
     }
 
-    // Auto-Save do Perfil
     function salvarEstadoPerfil() {
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
       const dados = {
@@ -1033,7 +1213,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -1132,11 +1312,8 @@
       corpo.innerHTML = html;
     }
 
-    // Renderização Segura do Gráfico
     function renderizarGrafico() {
-      if (typeof Chart === 'undefined') {
-        return;
-      }
+      if (typeof Chart === 'undefined') return;
       const ctx = document.getElementById('graficoEvolucao');
       if (!ctx) return;
       const labels = historicoEvolucao.map(i => i.data.split('-').slice(1).reverse().join('/'));
@@ -1149,8 +1326,14 @@
       });
     }
 
-    // Gerar Dieta Multi-Dias
+    // Gerar Dieta Multi-Dias (com Paywall Inteligente)
     async function gerarCardapio(payload) {
+      // Regra de Paywall: Plano > 1 dia requer assinatura PRO ativa
+      if (parseInt(payload.dias_plano) > 1 && usuarioAtual?.subscription_status !== 'active') {
+        abrirModalPlanos();
+        return;
+      }
+
       const btn = document.getElementById('btn-gerar');
       const loading = document.getElementById('loading');
       const containerNav = document.getElementById('container-dias-navegacao');
@@ -1258,8 +1441,12 @@
         </div>`;
     }
 
-    // Modal de Troca
     function abrirModalTroca(diaNum, refIdx) {
+      if (usuarioAtual?.subscription_status !== 'active') {
+        abrirModalPlanos();
+        return;
+      }
+
       trocaContextoDia = diaNum;
       trocaContextoRefIdx = refIdx;
 
@@ -1406,10 +1593,7 @@
       finally { loading.style.display = 'none'; }
     });
 
-    // ==========================================
-    // LISTA DE COMPRAS REAL MULTI-DIAS
-    // ==========================================
-
+    // Lista de Compras
     function alternarModoVisualizacaoCompras(modo) {
       modoCompras = modo;
       renderizarListaComprasMultiDias();
@@ -1504,10 +1688,7 @@
       navigator.clipboard.writeText(t).then(() => alert('Lista completa de todos os dias copiada para enviar no WhatsApp!'));
     }
 
-    // ==========================================
-    // GERADORES DE PDF BLINDADOS
-    // ==========================================
-
+    // PDF
     function baixarPDFPlanoNutricional() {
       if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
         alert('Gere um plano alimentar primeiro para poder baixar o PDF!');
@@ -1641,7 +1822,7 @@
 
     document.getElementById('profileForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      salvarEstadoPerfil(); // Garante o sync imediato ao submeter
+      salvarEstadoPerfil();
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
       gerarCardapio({
         idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
