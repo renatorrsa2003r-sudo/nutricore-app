@@ -69,6 +69,16 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            quiz_data_json TEXT,
+            created_at TEXT NOT NULL
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -129,6 +139,20 @@ class LoginInput(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: dict
+
+class LeadCaptureInput(BaseModel):
+    name: str
+    email: str
+    phone: str
+    idade: int = 28
+    sexo: str = "masculino"
+    peso_kg: float = 78.0
+    altura_cm: float = 178.0
+    peso_alvo_kg: float = 70.0
+    nivel_atividade: str = "moderado"
+    objetivo: str = "perda_peso"
+    obstaculo: Optional[str] = "falta_tempo"
+    estilo_culinario: Optional[str] = "caseiro_brasil"
 
 class CreatePixPaymentInput(BaseModel):
     plan_type: str = Field(..., pattern="^(mensal|anual)$")
@@ -396,6 +420,56 @@ def serve_manifest():
 def home():
     return FileResponse("index.html")
 
+@app.get("/quiz")
+def quiz_page():
+    return FileResponse("quiz.html")
+
+# --- ROTAS DE CAPTURA DE LEADS (QUIZ) ---
+
+@app.post("/api/v1/lead/capture")
+def capturar_lead_quiz(lead: LeadCaptureInput):
+    # Cálculo rápido de diagnóstico
+    if lead.sexo == "masculino":
+        tmb = (10 * lead.peso_kg) + (6.25 * lead.altura_cm) - (5 * lead.idade) + 5
+    else:
+        tmb = (10 * lead.peso_kg) + (6.25 * lead.altura_cm) - (5 * lead.idade) - 161
+
+    fatores = {"sedentario": 1.2, "leve": 1.375, "moderado": 1.55, "intenso": 1.725}
+    tdee = tmb * fatores.get(lead.nivel_atividade, 1.55)
+
+    if lead.objetivo == "perda_peso":
+        meta_calorica = tdee * 0.80
+        dif_peso = max(0.0, lead.peso_kg - lead.peso_alvo_kg)
+        semanas_estimadas = max(2, int(dif_peso / 0.6))
+    elif lead.objetivo == "hipertrofia":
+        meta_calorica = tdee * 1.15
+        dif_peso = max(0.0, lead.peso_alvo_kg - lead.peso_kg)
+        semanas_estimadas = max(4, int(dif_peso / 0.4))
+    else:
+        meta_calorica = tdee
+        semanas_estimadas = 4
+
+    imc = lead.peso_kg / ((lead.altura_cm / 100) ** 2)
+
+    agora = datetime.utcnow().isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO leads (name, email, phone, quiz_data_json, created_at) VALUES (?, ?, ?, ?, ?)",
+        (lead.name.strip(), lead.email.lower().strip(), lead.phone.strip(), json.dumps(lead.dict()), agora)
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "tmb": round(tmb, 0),
+        "tdee": round(tdee, 0),
+        "meta_calorica": round(meta_calorica, 0),
+        "imc": round(imc, 1),
+        "semanas_estimadas": semanas_estimadas,
+        "mensagem_personalizada": f"Com base na sua rotina e metabolismo, identificamos um potencial de transformação corporal consistente em {semanas_estimadas} semanas sem cortes bruscos."
+    }
+
 # --- ROTAS DE AUTENTICAÇÃO ---
 
 @app.post("/api/v1/auth/register", response_model=AuthResponse)
@@ -498,7 +572,6 @@ def criar_pagamento_pix(dados: CreatePixPaymentInput, authorization: Optional[st
     descricao = f"NutriCore Pro - Assinatura {dados.plan_type.capitalize()}"
     mp_access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
 
-    # Se a chave do Mercado Pago estiver configurada no Render:
     if mp_access_token:
         headers = {
             "Authorization": f"Bearer {mp_access_token}",
@@ -523,7 +596,6 @@ def criar_pagamento_pix(dados: CreatePixPaymentInput, authorization: Optional[st
         else:
             raise HTTPException(status_code=500, detail="Erro ao gerar cobrança no gateway de pagamento.")
     else:
-        # Modo Sandbox / Demonstração (caso ainda não tenha inserido o token do MP)
         payment_id = f"demo_{secrets.token_hex(8)}"
         qr_code = f"00020126580014br.gov.bcb.pix0136nutricore-pix-{payment_id}520400005303986540{valor:.2f}5802BR5925NUTRICORE PRO SAAS6009SAO PAULO62070503***6304"
         qr_code_base64 = None
@@ -564,7 +636,6 @@ def verificar_status_pagamento(payment_id: str, authorization: Optional[str] = H
 
     status, plan_type, order_user_id = order
 
-    # Se tiver Mercado Pago configurado, consulta a API
     mp_access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
     if mp_access_token and not payment_id.startswith("demo_") and status == "pending":
         headers = {"Authorization": f"Bearer {mp_access_token}"}
@@ -582,7 +653,6 @@ def verificar_status_pagamento(payment_id: str, authorization: Optional[str] = H
     conn.close()
     return {"status": status}
 
-# Rota de simulação para você testar a aprovação em 1 clique
 @app.post("/api/v1/payment/simulate-approval/{payment_id}")
 def simular_aprovacao(payment_id: str):
     conn = sqlite3.connect(DB_PATH)
