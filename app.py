@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
 from google import genai
@@ -94,11 +94,11 @@ def get_user_by_token(token: Optional[str]):
 
 class RegisterInput(BaseModel):
     name: str = Field(..., min_length=2)
-    email: EmailStr
+    email: str = Field(..., min_length=5)
     password: str = Field(..., min_length=6)
 
 class LoginInput(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=5)
     password: str = Field(..., min_length=6)
 
 class AuthResponse(BaseModel):
@@ -373,9 +373,10 @@ def home():
 
 @app.post("/api/v1/auth/register", response_model=AuthResponse)
 def cadastrar_usuario(dados: RegisterInput):
+    email_clean = dados.email.lower().strip()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE email = ?", (dados.email.lower().strip(),))
+    c.execute("SELECT id FROM users WHERE email = ?", (email_clean,))
     if c.fetchone():
         conn.close()
         raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado. Faça login.")
@@ -385,7 +386,7 @@ def cadastrar_usuario(dados: RegisterInput):
 
     c.execute(
         "INSERT INTO users (name, email, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?)",
-        (dados.name.strip(), dados.email.lower().strip(), pwd_hash, salt, agora)
+        (dados.name.strip(), email_clean, pwd_hash, salt, agora)
     )
     user_id = c.lastrowid
     token = secrets.token_urlsafe(32)
@@ -395,14 +396,15 @@ def cadastrar_usuario(dados: RegisterInput):
 
     return AuthResponse(
         token=token,
-        user={"id": user_id, "name": dados.name.strip(), "email": dados.email.lower().strip()}
+        user={"id": user_id, "name": dados.name.strip(), "email": email_clean}
     )
 
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
 def login_usuario(dados: LoginInput):
+    email_clean = dados.email.lower().strip()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id, name, email, password_hash, salt FROM users WHERE email = ?", (dados.email.lower().strip(),))
+    c.execute("SELECT id, name, email, password_hash, salt FROM users WHERE email = ?", (email_clean,))
     user = c.fetchone()
     if not user:
         conn.close()
@@ -429,7 +431,7 @@ def obter_usuario_logado(authorization: Optional[str] = Header(None)):
     token = authorization.replace("Bearer ", "") if authorization else None
     user = get_user_by_token(token)
     if not user:
-        raise HTTPException(status_code=401, detail="Sessão expirada ou inválida. Faça login novamente.")
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
     return user
 
 @app.post("/api/v1/auth/logout")
