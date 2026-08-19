@@ -2,18 +2,108 @@ import os
 import json
 import re
 import time
-from fastapi import FastAPI, HTTPException, Request
+import sqlite3
+import secrets
+import hashlib
+from datetime import datetime
+from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from enum import Enum
 from google import genai
 from google.genai import types
 
 # ==========================================
-# 1. MODELOS DE DADOS E ENUMS
+# 1. BANCO DE DADOS & SEGURANÇA
 # ==========================================
+
+DB_PATH = "nutricore.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_data (
+            user_id INTEGER PRIMARY KEY,
+            profile_json TEXT,
+            diet_json TEXT,
+            evolution_json TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def hash_password(password: str, salt: Optional[str] = None):
+    if not salt:
+        salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt.encode('utf-8'),
+        100000
+    ).hex()
+    return pwd_hash, salt
+
+def verify_password(password: str, salt: str, stored_hash: str) -> bool:
+    pwd_hash, _ = hash_password(password, salt)
+    return pwd_hash == stored_hash
+
+def get_user_by_token(token: Optional[str]):
+    if not token:
+        return None
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        SELECT u.id, u.name, u.email 
+        FROM sessions s 
+        JOIN users u ON s.user_id = u.id 
+        WHERE s.token = ?
+    ''', (token,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {"id": row[0], "name": row[1], "email": row[2]}
+    return None
+
+# ==========================================
+# 2. MODELOS DE AUTENTICAÇÃO E DADOS
+# ==========================================
+
+class RegisterInput(BaseModel):
+    name: str = Field(..., min_length=2)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+
+class LoginInput(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+
+class AuthResponse(BaseModel):
+    token: str
+    user: dict
 
 class SexoEnum(str, Enum):
     MASCULINO = "masculino"
@@ -150,7 +240,7 @@ class TreinoResponse(BaseModel):
     finalizacao: List[Exercicio]
 
 # ==========================================
-# 2. MODELOS ATIVOS E EXECUTOR IA
+# 3. MODELOS ATIVOS E EXECUTOR IA
 # ==========================================
 
 MODELOS_ATIVOS = [
@@ -171,7 +261,7 @@ def obter_chave(api_key_param: Optional[str]):
     if not key or key.strip() == "":
         raise HTTPException(
             status_code=400,
-            detail="Chave API do Gemini ausente. Insira sua chave na aba Configurações."
+            detail="Chave API do Gemini ausente. Configure sua chave na aba Configurações."
         )
     return key.strip()
 
@@ -203,7 +293,7 @@ def executar_chamada_ia(client: genai.Client, prompt: str):
     )
 
 # ==========================================
-# 3. LÓGICA NUTRICIONAL
+# 4. LÓGICA NUTRICIONAL
 # ==========================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -245,7 +335,7 @@ def calcular_metas(p: PerfilUsuarioInput):
     return round(tmb, 1), round(tdee, 1), round(meta_calorica, 1), macros
 
 # ==========================================
-# 4. APP FASTAPI E ROTAS
+# 5. APP FASTAPI E ROTAS
 # ==========================================
 
 app = FastAPI(title="NutriCore Pro Engine")
@@ -268,7 +358,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Erro interno do servidor: {str(exc)}"}
+        content={"detail": f"Erro interno: {str(exc)}"}
     )
 
 @app.get("/manifest.json")
@@ -278,6 +368,82 @@ def serve_manifest():
 @app.get("/")
 def home():
     return FileResponse("index.html")
+
+# --- ROTAS DE AUTENTICAÇÃO ---
+
+@app.post("/api/v1/auth/register", response_model=AuthResponse)
+def cadastrar_usuario(dados: RegisterInput):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE email = ?", (dados.email.lower().strip(),))
+    if c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado. Faça login.")
+
+    pwd_hash, salt = hash_password(dados.password)
+    agora = datetime.utcnow().isoformat()
+
+    c.execute(
+        "INSERT INTO users (name, email, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?)",
+        (dados.name.strip(), dados.email.lower().strip(), pwd_hash, salt, agora)
+    )
+    user_id = c.lastrowid
+    token = secrets.token_urlsafe(32)
+    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user_id, agora))
+    conn.commit()
+    conn.close()
+
+    return AuthResponse(
+        token=token,
+        user={"id": user_id, "name": dados.name.strip(), "email": dados.email.lower().strip()}
+    )
+
+@app.post("/api/v1/auth/login", response_model=AuthResponse)
+def login_usuario(dados: LoginInput):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, name, email, password_hash, salt FROM users WHERE email = ?", (dados.email.lower().strip(),))
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
+
+    user_id, name, email, stored_hash, salt = user
+    if not verify_password(dados.password, salt, stored_hash):
+        conn.close()
+        raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
+
+    token = secrets.token_urlsafe(32)
+    agora = datetime.utcnow().isoformat()
+    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user_id, agora))
+    conn.commit()
+    conn.close()
+
+    return AuthResponse(
+        token=token,
+        user={"id": user_id, "name": name, "email": email}
+    )
+
+@app.get("/api/v1/auth/me")
+def obter_usuario_logado(authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada ou inválida. Faça login novamente.")
+    return user
+
+@app.post("/api/v1/auth/logout")
+def logout_usuario(authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    if token:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        conn.commit()
+        conn.close()
+    return {"message": "Desconectado com sucesso."}
+
+# --- ROTAS NUTRICIONAIS E TREINOS ---
 
 @app.post("/api/v1/diet/generate", response_model=PlanoAlimentarResponse)
 def criar_plano(perfil: PerfilUsuarioInput):
@@ -307,7 +473,7 @@ def criar_plano(perfil: PerfilUsuarioInput):
               "gorduras_refeicao_g": 14.0,
               "ingredientes": ["3 ovos", "30g de farelo de aveia", "1 banana prata"],
               "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
-              "dica_chef": "Adicione canela para melhorar a saciedade."
+              "dica_chef": "Adicione canela para saciedade."
             }}
           ]
         }}
@@ -369,20 +535,20 @@ def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
     Restrições Clínicas: {', '.join(dados.intolerancias_saude) if dados.intolerancias_saude else 'Nenhuma'}
 
     REGRAS OBRIGATÓRIAS:
-    1. Atenda exatamente à solicitação do paciente (remova o alimento que ele não gosta ou crie a alternativa solicitada).
-    2. Preserve as calorias e macronutrientes da refeição para não desregular o plano alimentar.
-    3. Retorne estritamente um único objeto JSON:
+    1. Atenda à solicitação (remova o que não gosta ou substitua pelo solicitado).
+    2. Preserve as calorias e macronutrientes aproximados.
+    3. Retorne estritamente o JSON:
     {{
       "nome_refeicao": "{dados.refeicao_atual.nome_refeicao}",
-      "titulo_prato": "Novo Título Atraente do Prato",
+      "titulo_prato": "Novo Título do Prato",
       "horario_sugerido": "{dados.refeicao_atual.horario_sugerido}",
       "calorias_alvo": {dados.refeicao_atual.calorias_alvo},
       "proteinas_refeicao_g": {dados.refeicao_atual.proteinas_refeicao_g},
       "carboidratos_refeicao_g": {dados.refeicao_atual.carboidratos_refeicao_g},
       "gorduras_refeicao_g": {dados.refeicao_atual.gorduras_refeicao_g},
-      "ingredientes": ["Ingrediente 1 com quantidade precisa", "Ingrediente 2 com quantidade"],
-      "modo_preparo": "Instruções práticas de preparo",
-      "dica_chef": "Dica nutricional sobre a nova combinação"
+      "ingredientes": ["Ingrediente 1", "Ingrediente 2"],
+      "modo_preparo": "Instruções práticas",
+      "dica_chef": "Dica nutricional da nova combinação"
     }}
     Retorne APENAS o JSON puro.
     """
@@ -396,24 +562,24 @@ def consultar_nutricao(dados: ConsultaFuncionalInput):
     client = genai.Client(api_key=api_key)
 
     prompt = f"""
-    Atue como nutricionista funcional e especialista em fitoterapia/compostos bioativos.
-    Gere um protocolo terapêutico em JSON para o objetivo: "{dados.objetivo_especifico}".
-    Padrão alimentar: {dados.preferencia}.
+    Atue como nutricionista funcional e especialista em fitoterapia.
+    Gere um protocolo terapêutico em JSON para: "{dados.objetivo_especifico}".
+    Padrão: {dados.preferencia}.
 
-    Estrutura JSON obrigatória:
+    Estrutura JSON:
     {{
-      "titulo_estrategia": "Título profissional da estratégia",
-      "explicacao_fisiologica": "Explicação científica clara e concisa",
+      "titulo_estrategia": "Título da estratégia",
+      "explicacao_fisiologica": "Explicação científica clara",
       "alimentos_chave": [
-        {{"alimento": "Nome do alimento", "porcao_sugerida": "Quantidade", "por_que_funciona": "Motivo bioquímico", "como_consumir": "Como incluir na rotina"}}
+        {{"alimento": "Nome", "porcao_sugerida": "Quantidade", "por_que_funciona": "Motivo", "como_consumir": "Uso"}}
       ],
       "alimentos_evitar": ["Item 1", "Item 2"],
       "receita_rapida": {{
-        "titulo": "Nome da receita funcional ou shot",
+        "titulo": "Nome do shot ou receita",
         "tempo_preparo": "3 min",
         "ingredientes": ["Item 1", "Item 2"],
-        "modo_preparo": "Instruções de preparo",
-        "quando_tomar": "Horário ideal de consumo"
+        "modo_preparo": "Instruções",
+        "quando_tomar": "Horário ideal"
       }}
     }}
     Retorne APENAS o JSON puro.
@@ -428,22 +594,16 @@ def criar_treino(dados: TreinoInput):
     client = genai.Client(api_key=api_key)
 
     prompt = f"""
-    Crie uma sessão de treino completa e personalizada em JSON.
-    Nível: {dados.nivel} | Foco: {dados.foco} | Equipamento: {dados.equipamento} | Duração: {dados.tempo_minutos} minutos.
+    Crie uma sessão de treino em JSON.
+    Nível: {dados.nivel} | Foco: {dados.foco} | Equipamento: {dados.equipamento} | Duração: {dados.tempo_minutos}min.
 
-    Estrutura JSON obrigatória:
+    Estrutura JSON:
     {{
-      "titulo": "Título da Sessão de Treino",
+      "titulo": "Título do Treino",
       "foco_principal": "{dados.foco}",
-      "aquecimento": [
-        {{"nome": "Exercício de aquecimento", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Orientação de execução"}}
-      ],
-      "treino_principal": [
-        {{"nome": "Exercício principal", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Orientação de postura e ritmo"}}
-      ],
-      "finalizacao": [
-        {{"nome": "Exercício de core ou alongamento", "series": "3", "repeticoes": "45s", "descanso": "45s", "dica_tecnica": "Orientação técnica"}}
-      ]
+      "aquecimento": [{{"nome": "Aquecimento", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Instrução"}}],
+      "treino_principal": [{{"nome": "Exercício Principal", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Instrução"}}],
+      "finalizacao": [{{"nome": "Core / Alongamento", "series": "3", "repeticoes": "45s", "descanso": "45s", "dica_tecnica": "Instrução"}}]
     }}
     Retorne APENAS o JSON puro.
     """
