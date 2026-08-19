@@ -5,7 +5,8 @@ import time
 import sqlite3
 import secrets
 import hashlib
-from datetime import datetime
+import requests
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -31,6 +32,9 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
+            subscription_status TEXT DEFAULT 'trial',
+            plan_type TEXT DEFAULT 'free',
+            subscription_end TEXT,
             created_at TEXT NOT NULL
         )
     ''')
@@ -48,6 +52,20 @@ def init_db():
             profile_json TEXT,
             diet_json TEXT,
             evolution_json TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            payment_id TEXT UNIQUE,
+            plan_type TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            qr_code TEXT,
+            qr_code_base64 TEXT,
+            created_at TEXT NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
@@ -77,7 +95,7 @@ def get_user_by_token(token: Optional[str]):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
-        SELECT u.id, u.name, u.email 
+        SELECT u.id, u.name, u.email, u.subscription_status, u.plan_type, u.subscription_end
         FROM sessions s 
         JOIN users u ON s.user_id = u.id 
         WHERE s.token = ?
@@ -85,11 +103,18 @@ def get_user_by_token(token: Optional[str]):
     row = c.fetchone()
     conn.close()
     if row:
-        return {"id": row[0], "name": row[1], "email": row[2]}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "email": row[2],
+            "subscription_status": row[3],
+            "plan_type": row[4],
+            "subscription_end": row[5]
+        }
     return None
 
 # ==========================================
-# 2. MODELOS DE AUTENTICAÇÃO E DADOS
+# 2. MODELOS DE DADOS E PAGAMENTO
 # ==========================================
 
 class RegisterInput(BaseModel):
@@ -104,6 +129,9 @@ class LoginInput(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: dict
+
+class CreatePixPaymentInput(BaseModel):
+    plan_type: str = Field(..., pattern="^(mensal|anual)$")
 
 class UserDataSyncInput(BaseModel):
     profile: Optional[dict] = None
@@ -354,17 +382,11 @@ app.add_middleware(
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Erro interno: {str(exc)}"}
-    )
+    return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
 @app.get("/manifest.json")
 def serve_manifest():
@@ -390,7 +412,7 @@ def cadastrar_usuario(dados: RegisterInput):
     agora = datetime.utcnow().isoformat()
 
     c.execute(
-        "INSERT INTO users (name, email, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (name, email, password_hash, salt, subscription_status, plan_type, created_at) VALUES (?, ?, ?, ?, 'trial', 'free', ?)",
         (dados.name.strip(), email_clean, pwd_hash, salt, agora)
     )
     user_id = c.lastrowid
@@ -401,7 +423,13 @@ def cadastrar_usuario(dados: RegisterInput):
 
     return AuthResponse(
         token=token,
-        user={"id": user_id, "name": dados.name.strip(), "email": email_clean}
+        user={
+            "id": user_id,
+            "name": dados.name.strip(),
+            "email": email_clean,
+            "subscription_status": "trial",
+            "plan_type": "free"
+        }
     )
 
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
@@ -409,13 +437,13 @@ def login_usuario(dados: LoginInput):
     email_clean = dados.email.lower().strip()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id, name, email, password_hash, salt FROM users WHERE email = ?", (email_clean,))
+    c.execute("SELECT id, name, email, password_hash, salt, subscription_status, plan_type, subscription_end FROM users WHERE email = ?", (email_clean,))
     user = c.fetchone()
     if not user:
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
 
-    user_id, name, email, stored_hash, salt = user
+    user_id, name, email, stored_hash, salt, status, plan, sub_end = user
     if not verify_password(dados.password, salt, stored_hash):
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
@@ -428,7 +456,14 @@ def login_usuario(dados: LoginInput):
 
     return AuthResponse(
         token=token,
-        user={"id": user_id, "name": name, "email": email}
+        user={
+            "id": user_id,
+            "name": name,
+            "email": email,
+            "subscription_status": status,
+            "plan_type": plan,
+            "subscription_end": sub_end
+        }
     )
 
 @app.get("/api/v1/auth/me")
@@ -450,7 +485,125 @@ def logout_usuario(authorization: Optional[str] = Header(None)):
         conn.close()
     return {"message": "Desconectado com sucesso."}
 
-# --- SINCRONIZAÇÃO DE DADOS DO USUÁRIO NA NUVEM ---
+# --- ROTAS DE PAGAMENTO PIX ---
+
+@app.post("/api/v1/payment/create-pix")
+def criar_pagamento_pix(dados: CreatePixPaymentInput, authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Faça login para assinar.")
+
+    valor = 29.90 if dados.plan_type == "mensal" else 149.90
+    descricao = f"NutriCore Pro - Assinatura {dados.plan_type.capitalize()}"
+    mp_access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+
+    # Se a chave do Mercado Pago estiver configurada no Render:
+    if mp_access_token:
+        headers = {
+            "Authorization": f"Bearer {mp_access_token}",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "transaction_amount": valor,
+            "description": descricao,
+            "payment_method_id": "pix",
+            "payer": {
+                "email": user["email"],
+                "first_name": user["name"]
+            }
+        }
+        resp = requests.post("[https://api.mercadopago.com/v1/payments](https://api.mercadopago.com/v1/payments)", headers=headers, json=body)
+        if resp.status_code in [200, 201]:
+            data_mp = resp.json()
+            payment_id = str(data_mp.get("id"))
+            poi = data_mp.get("point_of_interaction", {}).get("transaction_data", {})
+            qr_code = poi.get("qr_code")
+            qr_code_base64 = poi.get("qr_code_base64")
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao gerar cobrança no gateway de pagamento.")
+    else:
+        # Modo Sandbox / Demonstração (caso ainda não tenha inserido o token do MP)
+        payment_id = f"demo_{secrets.token_hex(8)}"
+        qr_code = f"00020126580014br.gov.bcb.pix0136nutricore-pix-{payment_id}520400005303986540{valor:.2f}5802BR5925NUTRICORE PRO SAAS6009SAO PAULO62070503***6304"
+        qr_code_base64 = None
+
+    agora = datetime.utcnow().isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO orders (user_id, payment_id, plan_type, amount, status, qr_code, qr_code_base64, created_at)
+        VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
+    ''', (user["id"], payment_id, dados.plan_type, valor, qr_code, qr_code_base64, agora))
+    conn.commit()
+    conn.close()
+
+    return {
+        "payment_id": payment_id,
+        "amount": valor,
+        "plan_type": dados.plan_type,
+        "qr_code": qr_code,
+        "qr_code_base64": qr_code_base64
+    }
+
+@app.get("/api/v1/payment/check-status/{payment_id}")
+def verificar_status_pagamento(payment_id: str, authorization: Optional[str] = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT status, plan_type, user_id FROM orders WHERE payment_id = ?", (payment_id,))
+    order = c.fetchone()
+
+    if not order:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+
+    status, plan_type, order_user_id = order
+
+    # Se tiver Mercado Pago configurado, consulta a API
+    mp_access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
+    if mp_access_token and not payment_id.startswith("demo_") and status == "pending":
+        headers = {"Authorization": f"Bearer {mp_access_token}"}
+        resp = requests.get(f"[https://api.mercadopago.com/v1/payments/](https://api.mercadopago.com/v1/payments/){payment_id}", headers=headers)
+        if resp.status_code == 200:
+            status_mp = resp.json().get("status")
+            if status_mp == "approved":
+                status = "approved"
+                dias_add = 30 if plan_type == "mensal" else 365
+                sub_end = (datetime.utcnow() + timedelta(days=dias_add)).isoformat()
+                c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = ?", (payment_id,))
+                c.execute("UPDATE users SET subscription_status = 'active', plan_type = ?, subscription_end = ? WHERE id = ?", (plan_type, sub_end, order_user_id))
+                conn.commit()
+
+    conn.close()
+    return {"status": status}
+
+# Rota de simulação para você testar a aprovação em 1 clique
+@app.post("/api/v1/payment/simulate-approval/{payment_id}")
+def simular_aprovacao(payment_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT plan_type, user_id FROM orders WHERE payment_id = ?", (payment_id,))
+    order = c.fetchone()
+    if not order:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+
+    plan_type, user_id = order
+    dias_add = 30 if plan_type == "mensal" else 365
+    sub_end = (datetime.utcnow() + timedelta(days=dias_add)).isoformat()
+
+    c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = ?", (payment_id,))
+    c.execute("UPDATE users SET subscription_status = 'active', plan_type = ?, subscription_end = ? WHERE id = ?", (plan_type, sub_end, user_id))
+    conn.commit()
+    conn.close()
+    return {"message": "Pagamento aprovado e plano liberado com sucesso!"}
+
+# --- ROTAS DE SINCRONIZAÇÃO NUVEM ---
 
 @app.get("/api/v1/user/sync-data")
 def obter_dados_usuario(authorization: Optional[str] = Header(None)):
