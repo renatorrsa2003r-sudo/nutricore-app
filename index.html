@@ -6,8 +6,8 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
   <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
 
   <style>
     :root {
@@ -687,7 +687,7 @@
 
         localStorage.setItem('nutricore_token', data.token);
         usuarioAtual = data.user;
-        inicializarAppAutenticado();
+        await inicializarAppAutenticado();
       } catch (err) {
         alert(err.message);
       } finally {
@@ -708,7 +708,7 @@
         });
         if (res.ok) {
           usuarioAtual = await res.json();
-          inicializarAppAutenticado();
+          await inicializarAppAutenticado();
         } else {
           fazerLogout();
         }
@@ -717,16 +717,64 @@
       }
     }
 
-    function inicializarAppAutenticado() {
+    async function salvarNaContaNuvem(dadosSync) {
+      const token = localStorage.getItem('nutricore_token');
+      if (!token) return;
+      try {
+        await fetch('/api/v1/user/sync-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(dadosSync)
+        });
+      } catch(e) {
+        console.error("Falha ao sincronizar na nuvem:", e);
+      }
+    }
+
+    async function inicializarAppAutenticado() {
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
-      carregarEstadoPerfil();
-      carregarEvolucao();
-      const sd = localStorage.getItem('nutricore_v2_diet');
-      if (sd) { 
-        dadosPlanoAtual = JSON.parse(sd); 
-        renderizarDietaCompleta(dadosPlanoAtual); 
-        renderizarListaComprasMultiDias(); 
+
+      // 1. Busca dados da conta na nuvem (SQLite)
+      const token = localStorage.getItem('nutricore_token');
+      try {
+        const res = await fetch('/api/v1/user/sync-data', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const nuvem = await res.json();
+          if (nuvem.profile) {
+            aplicarEstadoPerfil(nuvem.profile);
+          } else {
+            carregarEstadoPerfilLocal();
+          }
+
+          if (nuvem.diet) {
+            dadosPlanoAtual = nuvem.diet;
+            renderizarDietaCompleta(dadosPlanoAtual);
+            renderizarListaComprasMultiDias();
+          } else {
+            const sd = localStorage.getItem('nutricore_v2_diet');
+            if (sd) { 
+              dadosPlanoAtual = JSON.parse(sd); 
+              renderizarDietaCompleta(dadosPlanoAtual); 
+              renderizarListaComprasMultiDias(); 
+            }
+          }
+
+          if (nuvem.evolution && nuvem.evolution.length > 0) {
+            historicoEvolucao = nuvem.evolution;
+            atualizarDashboardEvolucao();
+          } else {
+            carregarEvolucaoLocal();
+          }
+        }
+      } catch (e) {
+        carregarEstadoPerfilLocal();
+        carregarEvolucaoLocal();
       }
     }
 
@@ -741,7 +789,11 @@
         } catch (e) {}
       }
       localStorage.removeItem('nutricore_token');
+      localStorage.removeItem('nutricore_v2_diet');
+      localStorage.removeItem('nutricore_evolution_v1');
       usuarioAtual = null;
+      dadosPlanoAtual = null;
+      historicoEvolucao = [];
       document.getElementById('auth-screen').style.display = 'flex';
     }
 
@@ -816,38 +868,40 @@
         alimentos_evitar: document.getElementById('alimentos_evitar').value, dias_plano: document.getElementById('dias_plano').value, tags: tags
       };
       localStorage.setItem('nutricore_user_profile_pro', JSON.stringify(dados));
+      salvarNaContaNuvem({ profile: dados });
     }
 
-    function carregarEstadoPerfil() {
+    function aplicarEstadoPerfil(d) {
+      if (d.idade) document.getElementById('idade').value = d.idade;
+      if (d.sexo) document.getElementById('sexo').value = d.sexo;
+      if (d.peso) document.getElementById('peso').value = d.peso;
+      if (d.altura) document.getElementById('altura').value = d.altura;
+      if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
+      if (d.dias_plano) {
+        document.getElementById('dias_plano').value = d.dias_plano;
+        sincronizarPillDias(d.dias_plano);
+      }
+      if (d.objetivo) document.getElementById('objetivo').value = d.objetivo;
+      if (d.ritmo_objetivo) document.getElementById('ritmo_objetivo').value = d.ritmo_objetivo;
+      if (d.horario_acordar) document.getElementById('horario_acordar').value = d.horario_acordar;
+      if (d.horario_dormir) document.getElementById('horario_dormir').value = d.horario_dormir;
+      if (d.horario_treino) document.getElementById('horario_treino').value = d.horario_treino;
+      if (d.refeicoes_por_dia) document.getElementById('refeicoes_por_dia').value = d.refeicoes_por_dia;
+      if (d.estilo_culinario) document.getElementById('estilo_culinario').value = d.estilo_culinario;
+      if (d.preferencia) document.getElementById('preferencia').value = d.preferencia;
+      if (d.alimentos_favoritos) document.getElementById('alimentos_favoritos').value = d.alimentos_favoritos;
+      if (d.alimentos_evitar) document.getElementById('alimentos_evitar').value = d.alimentos_evitar;
+      if (Array.isArray(d.tags)) {
+        document.querySelectorAll('#container-tags-clinicas .tag-item').forEach(el => {
+          if (d.tags.includes(el.innerText.trim())) el.classList.add('active');
+        });
+      }
+    }
+
+    function carregarEstadoPerfilLocal() {
       const salvo = localStorage.getItem('nutricore_user_profile_pro');
       if (!salvo) return;
-      try {
-        const d = JSON.parse(salvo);
-        if (d.idade) document.getElementById('idade').value = d.idade;
-        if (d.sexo) document.getElementById('sexo').value = d.sexo;
-        if (d.peso) document.getElementById('peso').value = d.peso;
-        if (d.altura) document.getElementById('altura').value = d.altura;
-        if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
-        if (d.dias_plano) {
-          document.getElementById('dias_plano').value = d.dias_plano;
-          sincronizarPillDias(d.dias_plano);
-        }
-        if (d.objetivo) document.getElementById('objetivo').value = d.objetivo;
-        if (d.ritmo_objetivo) document.getElementById('ritmo_objetivo').value = d.ritmo_objetivo;
-        if (d.horario_acordar) document.getElementById('horario_acordar').value = d.horario_acordar;
-        if (d.horario_dormir) document.getElementById('horario_dormir').value = d.horario_dormir;
-        if (d.horario_treino) document.getElementById('horario_treino').value = d.horario_treino;
-        if (d.refeicoes_por_dia) document.getElementById('refeicoes_por_dia').value = d.refeicoes_por_dia;
-        if (d.estilo_culinario) document.getElementById('estilo_culinario').value = d.estilo_culinario;
-        if (d.preferencia) document.getElementById('preferencia').value = d.preferencia;
-        if (d.alimentos_favoritos) document.getElementById('alimentos_favoritos').value = d.alimentos_favoritos;
-        if (d.alimentos_evitar) document.getElementById('alimentos_evitar').value = d.alimentos_evitar;
-        if (Array.isArray(d.tags)) {
-          document.querySelectorAll('#container-tags-clinicas .tag-item').forEach(el => {
-            if (d.tags.includes(el.innerText.trim())) el.classList.add('active');
-          });
-        }
-      } catch(e) {}
+      try { aplicarEstadoPerfil(JSON.parse(salvo)); } catch(e) {}
     }
 
     async function safeFetch(url, payload) {
@@ -923,7 +977,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -935,21 +989,16 @@
     }
 
     // Evolução
-    function carregarEvolucao() {
+    function carregarEvolucaoLocal() {
       const salvo = localStorage.getItem('nutricore_evolution_v1');
       if (salvo) {
         historicoEvolucao = JSON.parse(salvo);
       } else {
         const pesoInicial = parseFloat(document.getElementById('peso').value) || 78.0;
         historicoEvolucao = [{ data: new Date().toISOString().split('T')[0], peso: pesoInicial, cintura: null, obs: 'Início' }];
-        salvarEvolucaoStorage();
       }
-      const metaSalva = localStorage.getItem('nutricore_target_weight');
-      if (metaSalva) document.getElementById('evo-meta').value = metaSalva;
-      document.getElementById('evo-data').value = new Date().toISOString().split('T')[0];
       atualizarDashboardEvolucao();
     }
-    function salvarEvolucaoStorage() { localStorage.setItem('nutricore_evolution_v1', JSON.stringify(historicoEvolucao)); }
 
     document.getElementById('formEvolucao').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -965,15 +1014,23 @@
       else historicoEvolucao.push({ data, peso, cintura, obs });
 
       historicoEvolucao.sort((a, b) => new Date(a.data) - new Date(b.data));
-      salvarEvolucaoStorage();
+      localStorage.setItem('nutricore_evolution_v1', JSON.stringify(historicoEvolucao));
+      salvarNaContaNuvem({ evolution: historicoEvolucao });
+      
       document.getElementById('evo-peso').value = '';
       atualizarDashboardEvolucao();
       renderizarAvatar();
-      alert('Check-in salvo com sucesso!');
+      alert('Check-in salvo e sincronizado na sua conta!');
     });
 
     function excluirRegistro(idx) {
-      if (confirm('Excluir registro?')) { historicoEvolucao.splice(idx, 1); salvarEvolucaoStorage(); atualizarDashboardEvolucao(); renderizarAvatar(); }
+      if (confirm('Excluir registro?')) { 
+        historicoEvolucao.splice(idx, 1); 
+        localStorage.setItem('nutricore_evolution_v1', JSON.stringify(historicoEvolucao));
+        salvarNaContaNuvem({ evolution: historicoEvolucao });
+        atualizarDashboardEvolucao(); 
+        renderizarAvatar(); 
+      }
     }
 
     function atualizarDashboardEvolucao() {
@@ -1047,7 +1104,10 @@
         dadosPlanoAtual = data;
         diaSelecionado = 1;
         modoVerTodos = false;
+        
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(data));
+        salvarNaContaNuvem({ diet: data });
+
         renderizarDietaCompleta(data);
         renderizarListaComprasMultiDias();
       } catch (err) { alert(err.message); }
@@ -1191,11 +1251,12 @@
 
         diaObj.refeicoes[trocaContextoRefIdx] = novaRefeicao;
         localStorage.setItem('nutricore_v2_diet', JSON.stringify(dadosPlanoAtual));
+        salvarNaContaNuvem({ diet: dadosPlanoAtual });
 
         renderizarRefeicoesExibidas();
         renderizarListaComprasMultiDias();
         fecharModalTroca();
-        alert('Refeição substituída com sucesso mantendo o equilíbrio nutricional!');
+        alert('Refeição substituída e sincronizada com sucesso!');
       } catch (err) {
         alert(err.message);
       } finally {
