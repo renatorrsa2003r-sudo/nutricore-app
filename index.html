@@ -6,8 +6,8 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
   <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
 
   <style>
     :root {
@@ -47,7 +47,9 @@
 
     /* Barra Lateral Desktop */
     aside { width: 260px; background-color: var(--bg-sidebar); color: #fff; display: flex; flex-direction: column; padding: 24px 16px; flex-shrink: 0; }
-    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: #10b981; margin-bottom: 32px; padding-left: 8px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: #10b981; margin-bottom: 24px; padding-left: 8px; }
+    .user-pill-sidebar { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .user-pill-sidebar span { font-size: 0.85rem; font-weight: 600; color: #fff; }
     .nav-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; color: #94a3b8; font-weight: 500; cursor: pointer; transition: all 0.2s; }
     .nav-item:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
@@ -88,12 +90,10 @@
     .tag-item { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
     .tag-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
 
-    /* Seletor Rápido de Dias */
     .day-selector-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .pill-opt { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--text-main); }
     .pill-opt.selected { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
 
-    /* Seletor de Dias Deslizável */
     .days-pill-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: thin; }
     .day-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
     .day-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -104,21 +104,7 @@
     .meal-macros-mini { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
     .meal-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
     
-    .btn-swap-meal {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
-      transition: all 0.2s;
-    }
+    .btn-swap-meal { background: rgba(16, 185, 129, 0.1); color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; transition: all 0.2s; }
     .btn-swap-meal:hover { background: var(--accent); color: #fff; }
 
     .recipe-section { margin-top: 10px; }
@@ -137,7 +123,6 @@
     .food-card .portion { font-size: 0.72rem; background: rgba(16, 185, 129, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
     .food-card p { font-size: 0.85rem; line-height: 1.4; margin-top: 4px; }
 
-    /* Estilos da Lista de Compras Multi-Dias */
     .shopping-day-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
     .shopping-day-title { font-size: 1.05rem; font-weight: 700; color: var(--accent); border-bottom: 2px solid rgba(16, 185, 129, 0.2); padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .shopping-meal-title { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin: 10px 0 6px 0; text-transform: uppercase; }
@@ -166,6 +151,13 @@
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .modal-header h3 { font-size: 1.1rem; color: var(--accent); }
     .modal-close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
+
+    /* TELA DE AUTENTICAÇÃO / LOGIN */
+    #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 20000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .auth-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px 24px; max-width: 400px; width: 100%; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
+    .auth-toggle-btns { display: flex; background: #0f172a; padding: 4px; border-radius: 10px; margin: 20px 0; }
+    .auth-toggle-btn { flex: 1; padding: 10px; background: none; border: none; color: #94a3b8; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+    .auth-toggle-btn.active { background: var(--accent); color: #fff; }
 
     #loading, #loading-funcional, #loading-treino, #loading-troca { display: none; text-align: center; padding: 30px 20px; }
     .spinner { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
@@ -210,9 +202,51 @@
 </head>
 <body>
 
+  <!-- TELA DE AUTENTICAÇÃO / LOGIN / CADASTRO -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent); margin-bottom: 4px;">
+        <i class="fas fa-leaf"></i> NutriCore Pro
+      </div>
+      <p style="font-size: 0.85rem; color: #94a3b8;">Sua plataforma inteligente de nutrição e treinos</p>
+
+      <div class="auth-toggle-btns">
+        <button class="auth-toggle-btn active" id="btn-tab-login" onclick="alternarAbaAuth('login')">Entrar</button>
+        <button class="auth-toggle-btn" id="btn-tab-cadastro" onclick="alternarAbaAuth('cadastro')">Criar Conta</button>
+      </div>
+
+      <form id="formAuth" style="text-align: left;">
+        <div class="form-group" id="group-auth-nome" style="display: none;">
+          <label style="color: #cbd5e1;">Nome Completo</label>
+          <input type="text" id="auth-nome" placeholder="Seu nome" style="background:#0f172a; border-color:#334155; color:#fff;">
+        </div>
+        <div class="form-group">
+          <label style="color: #cbd5e1;">E-mail</label>
+          <input type="email" id="auth-email" placeholder="seu@email.com" required style="background:#0f172a; border-color:#334155; color:#fff;">
+        </div>
+        <div class="form-group">
+          <label style="color: #cbd5e1;">Senha</label>
+          <input type="password" id="auth-senha" placeholder="Mínimo 6 caracteres" required style="background:#0f172a; border-color:#334155; color:#fff;">
+        </div>
+        <button type="submit" class="btn-primary" id="btn-submit-auth" style="margin-top: 10px;">
+          <i class="fas fa-right-to-bracket"></i> Acessar NutriCore Pro
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- BARRA LATERAL (DESKTOP) -->
   <aside>
     <div class="brand"><i class="fas fa-leaf"></i> NutriCore Pro</div>
+    <div class="user-pill-sidebar" id="user-info-sidebar">
+      <div>
+        <div style="font-size: 0.72rem; color: #94a3b8;">Conectado como:</div>
+        <span id="user-name-display">Usuário</span>
+      </div>
+      <button onclick="fazerLogout()" style="background:none; border:none; color:#ef4444; cursor:pointer;" title="Sair da conta">
+        <i class="fas fa-right-from-bracket"></i>
+      </button>
+    </div>
     <ul class="nav-list">
       <li class="nav-item active" onclick="switchTab('perfil')"><i class="fas fa-user"></i> Meu Perfil</li>
       <li class="nav-item" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i> Plano Alimentar</li>
@@ -228,7 +262,12 @@
   <main>
     <!-- ABA 1: PERFIL -->
     <section id="tab-perfil" class="tab-content active">
-      <header><h1>Perfil & Metas</h1></header>
+      <header>
+        <h1>Perfil & Metas</h1>
+        <button class="btn-primary btn-action-sm" style="background:#ef4444; display:flex;" onclick="fazerLogout()">
+          <i class="fas fa-right-from-bracket"></i> Sair da Conta
+        </button>
+      </header>
       <form id="profileForm">
         <div class="grid-2">
           <div class="card">
@@ -589,10 +628,13 @@
   </nav>
 
   <script>
+    let usuarioAtual = null;
+    let modoAuth = 'login'; // 'login' ou 'cadastro'
+
     let dadosPlanoAtual = null;
     let diaSelecionado = 1;
     let modoVerTodos = false;
-    let modoCompras = 'dias'; // 'dias' ou 'consolidado'
+    let modoCompras = 'dias';
     let chartInstance = null;
     let historicoEvolucao = [];
     let deferredPrompt;
@@ -600,6 +642,98 @@
     let trocaContextoDia = 1;
     let trocaContextoRefIdx = 0;
 
+    // --- AUTENTICAÇÃO ---
+    function alternarAbaAuth(modo) {
+      modoAuth = modo;
+      document.getElementById('btn-tab-login').classList.toggle('active', modo === 'login');
+      document.getElementById('btn-tab-cadastro').classList.toggle('active', modo === 'cadastro');
+      document.getElementById('group-auth-nome').style.display = (modo === 'cadastro') ? 'block' : 'none';
+      document.getElementById('btn-submit-auth').innerHTML = (modo === 'cadastro') 
+        ? `<i class="fas fa-user-plus"></i> Criar Minha Conta` 
+        : `<i class="fas fa-right-to-bracket"></i> Acessar NutriCore Pro`;
+    }
+
+    document.getElementById('formAuth').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-senha').value.trim();
+      const name = document.getElementById('auth-nome').value.trim();
+      const btn = document.getElementById('btn-submit-auth');
+
+      btn.disabled = true;
+      try {
+        const url = (modoAuth === 'cadastro') ? '/api/v1/auth/register' : '/api/v1/auth/login';
+        const payload = (modoAuth === 'cadastro') ? { name, email, password } : { email, password };
+        
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Falha na autenticação.');
+
+        localStorage.setItem('nutricore_token', data.token);
+        usuarioAtual = data.user;
+        inicializarAppAutenticado();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function verificarSessaoAtiva() {
+      const token = localStorage.getItem('nutricore_token');
+      if (!token) {
+        document.getElementById('auth-screen').style.display = 'flex';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/v1/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          usuarioAtual = await res.json();
+          inicializarAppAutenticado();
+        } else {
+          fazerLogout();
+        }
+      } catch (e) {
+        document.getElementById('auth-screen').style.display = 'flex';
+      }
+    }
+
+    function inicializarAppAutenticado() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
+      carregarEstadoPerfil();
+      carregarEvolucao();
+      const sd = localStorage.getItem('nutricore_v2_diet');
+      if (sd) { 
+        dadosPlanoAtual = JSON.parse(sd); 
+        renderizarDietaCompleta(dadosPlanoAtual); 
+        renderizarListaComprasMultiDias(); 
+      }
+    }
+
+    async function fazerLogout() {
+      const token = localStorage.getItem('nutricore_token');
+      if (token) {
+        try {
+          await fetch('/api/v1/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (e) {}
+      }
+      localStorage.removeItem('nutricore_token');
+      usuarioAtual = null;
+      document.getElementById('auth-screen').style.display = 'flex';
+    }
+
+    // Suporte PWA
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -708,9 +842,13 @@
       const apiKey = localStorage.getItem('gemini_api_key');
       if (apiKey) payload.gemini_api_key = apiKey;
 
+      const token = localStorage.getItem('nutricore_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify(payload)
       });
 
@@ -773,7 +911,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -1158,7 +1296,6 @@
       let html = '';
 
       if (modoCompras === 'dias') {
-        // Renderiza dia a dia com suas respectivas refeições
         dadosPlanoAtual.dias.forEach((d) => {
           html += `
             <div class="shopping-day-block">
@@ -1184,7 +1321,6 @@
           html += `</div>`;
         });
       } else {
-        // Modo Consolidado (Junta e organiza todos os itens únicos para o mercado)
         const todosIngredientes = [];
         dadosPlanoAtual.dias.forEach(d => {
           d.refeicoes.forEach(r => {
@@ -1255,7 +1391,7 @@
         <div style="border-bottom: 2px solid #10b981; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <h1 style="font-size: 22px; color: #10b981; margin: 0;">NutriCore Pro - Plano Nutricional</h1>
-            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias.length} Dia(s)</p>
+            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias.length} Dia(s) - Paciente: ${usuarioAtual?.name || 'Cliente'}</p>
           </div>
           <div style="text-align: right; font-size: 11px; color: #64748b;">
             Meta Diária: <strong>${dadosPlanoAtual.meta_calorica} kcal</strong><br>
@@ -1396,13 +1532,7 @@
     window.onload = () => {
       const k = localStorage.getItem('gemini_api_key'); if (k) document.getElementById('gemini-key').value = k;
       const th = localStorage.getItem('nutricore_theme') || 'light'; document.getElementById('tema').value = th; alterarTema(th);
-      carregarEstadoPerfil(); carregarEvolucao();
-      const sd = localStorage.getItem('nutricore_v2_diet');
-      if (sd) { 
-        dadosPlanoAtual = JSON.parse(sd); 
-        renderizarDietaCompleta(dadosPlanoAtual); 
-        renderizarListaComprasMultiDias(); 
-      }
+      verificarSessaoAtiva();
     };
   </script>
 </body>
