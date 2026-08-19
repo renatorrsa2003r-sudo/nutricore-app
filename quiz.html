@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quiz Metabólico - NutriCore Pro</title>
+  
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" />
+  
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
+
+    header {
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { font-size: 1.2rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+
+    /* Barra de Progresso */
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #334155;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 15%;
+      background: var(--accent);
+      transition: width 0.3s ease-in-out;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .quiz-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px 24px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .quiz-step-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .quiz-step-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--text-light);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+    .option-btn:hover {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.08);
+      transform: translateX(4px);
+    }
+    .option-btn.selected {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+    }
+
+    .form-group { margin-bottom: 14px; text-align: left; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--border); background: #0f172a; color: #fff; font-size: 0.95rem; outline: none; }
+    input:focus { border-color: var(--accent); }
+
+    .btn-action {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-action:hover { background: var(--accent-hover); }
+
+    /* Tela de Análise com IA */
+    .loading-ai-container { text-align: center; padding: 20px 0; }
+    .spinner-ai { font-size: 3rem; color: var(--accent); animation: spin 1.2s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Tela de Diagnóstico */
+    .metric-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .kpi-box { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .kpi-title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .kpi-val { font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 4px; }
+
+    .avatar-lead-box {
+      background: radial-gradient(circle at center, rgba(16,185,129,0.1) 0%, #0f172a 75%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 14px 0;
+    }
+
+    footer {
+      padding: 16px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topo -->
+  <div>
+    <header>
+      <div class="brand"><i class="fas fa-leaf"></i> NutriCore Pro</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);" id="step-counter">Passo 1 de 6</div>
+    </header>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <main>
+    <div class="quiz-card" id="quiz-container">
+      <!-- As etapas são injetadas dinamicamente pelo JavaScript -->
+    </div>
+  </main>
+
+  <footer>
+    NutriCore Pro &copy; 2026 • Tecnologia Nutricional Inteligente
+  </footer>
+
+  <script>
+    // Estado do Quiz
+    const quizData = {
+      objetivo: "perda_peso",
+      sexo: "masculino",
+      idade: 28,
+      nivel_atividade: "moderado",
+      obstaculo: "falta_tempo",
+      estilo_culinario: "caseiro_brasil",
+      peso_kg: 78.0,
+      altura_cm: 178,
+      peso_alvo_kg: 70.0,
+      name: "",
+      email: "",
+      phone: ""
+    };
+
+    let currentStep = 1;
+    const totalSteps = 6;
+
+    function renderStep() {
+      const container = document.getElementById('quiz-container');
+      const counter = document.getElementById('step-counter');
+      const progress = document.getElementById('progress-fill');
+
+      if (currentStep <= totalSteps) {
+        counter.innerText = `Passo ${currentStep} de ${totalSteps}`;
+        progress.style.width = `${(currentStep / totalSteps) * 100}%`;
+      }
+
+      switch (currentStep) {
+        case 1:
+          container.innerHTML = `
+            <div class="quiz-step-title">Qual é o seu objetivo principal?</div>
+            <div class="quiz-step-subtitle">Isso definirá o balanço calórico do seu plano.</div>
+            <div class="options-grid">
+              <div class="option-btn" onclick="selectOption('objetivo', 'perda_peso', 2)">
+                <span>🔥 Queimar Gordura & Emagrecer</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('objetivo', 'hipertrofia', 2)">
+                <span>💪 Ganhar Massa Muscular</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('objetivo', 'manutencao', 2)">
+                <span>⚡ Mais Energia & Manter Peso</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 2:
+          container.innerHTML = `
+            <div class="quiz-step-title">Qual o seu sexo e idade?</div>
+            <div class="quiz-step-subtitle">Necessário para o cálculo exato da taxa metabólica.</div>
+            <div class="options-grid" style="margin-bottom: 14px;">
+              <div class="option-btn ${quizData.sexo === 'masculino' ? 'selected' : ''}" onclick="quizData.sexo='masculino'; renderStep();">
+                <span>Homem</span><i class="fas fa-mars"></i>
+              </div>
+              <div class="option-btn ${quizData.sexo === 'feminino' ? 'selected' : ''}" onclick="quizData.sexo='feminino'; renderStep();">
+                <span>Mulher</span><i class="fas fa-venus"></i>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Sua Idade:</label>
+              <input type="number" id="input-idade" value="${quizData.idade}" min="15" max="99">
+            </div>
+            <button class="btn-action" onclick="quizData.idade = parseInt(document.getElementById('input-idade').value); currentStep = 3; renderStep();">
+              Avançar <i class="fas fa-arrow-right"></i>
+            </button>
+          `;
+          break;
+
+        case 3:
+          container.innerHTML = `
+            <div class="quiz-step-title">Como é o seu nível de atividade diária?</div>
+            <div class="quiz-step-subtitle">Considere trabalho e rotina de exercícios.</div>
+            <div class="options-grid">
+              <div class="option-btn" onclick="selectOption('nivel_atividade', 'sedentario', 4)">
+                <span>🛋️ Sedentário (Trabalho sentado, sem treinos)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('nivel_atividade', 'leve', 4)">
+                <span>🚶 Leve (Caminhadas ou treino 1-2x/sem)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('nivel_atividade', 'moderado', 4)">
+                <span>🏃 Moderado (Musculação/Corrida 3-5x/sem)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('nivel_atividade', 'intenso', 4)">
+                <span>⚡ Intenso (Treinos diários pesados / atleta)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 4:
+          container.innerHTML = `
+            <div class="quiz-step-title">Qual é o seu maior desafio com dieta hoje?</div>
+            <div class="quiz-step-subtitle">Ajustaremos a flexibilidade e tempo de preparo das receitas.</div>
+            <div class="options-grid">
+              <div class="option-btn" onclick="selectOption('obstaculo', 'falta_tempo', 5)">
+                <span>⏰ Falta de tempo para cozinhar</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('obstaculo', 'dieta_chata', 5)">
+                <span>🥦 Não aguento comer frango com batata doce todo dia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('obstaculo', 'efeito_sanfona', 5)">
+                <span>📉 Efeito sanfona (emagreço e engordo de novo)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('obstaculo', 'ansiedade_doces', 5)">
+                <span>🍫 Vontade de doce e ansiedade à noite</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 5:
+          container.innerHTML = `
+            <div class="quiz-step-title">Qual estilo de culinária você mais gosta?</div>
+            <div class="quiz-step-subtitle">O cardápio será gerado com ingredientes que você tem em casa.</div>
+            <div class="options-grid">
+              <div class="option-btn" onclick="selectOption('estilo_culinario', 'caseiro_brasil', 6)">
+                <span>🍳 Caseira Brasileira (Arroz, feijão, ovos, carnes)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('estilo_culinario', 'pratico_rapido', 6)">
+                <span>⚡ Rápida & Prática (Preparo em menos de 15 min)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="option-btn" onclick="selectOption('estilo_culinario', 'mediterraneo', 6)">
+                <span>🥗 Mediterrânea & Leve (Peixes, azeite, folhas)</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 6:
+          container.innerHTML = `
+            <div class="quiz-step-title">Suas medidas atuais & meta</div>
+            <div class="quiz-step-subtitle">Última etapa para calcular sua projeção.</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label>Peso Atual (kg):</label>
+                <input type="number" step="0.1" id="input-peso" value="${quizData.peso_kg}">
+              </div>
+              <div class="form-group">
+                <label>Altura (cm):</label>
+                <input type="number" id="input-altura" value="${quizData.altura_cm}">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Peso Desejado / Meta (kg):</label>
+              <input type="number" step="0.1" id="input-peso-alvo" value="${quizData.peso_alvo_kg}">
+            </div>
+            <button class="btn-action" onclick="salvarMedidasEAnalisar()">
+              <i class="fas fa-wand-magic-sparkles"></i> Analisar Meu Metabolismo
+            </button>
+          `;
+          break;
+      }
+    }
+
+    function selectOption(field, value, nextStep) {
+      quizData[field] = value;
+      currentStep = nextStep;
+      renderStep();
+    }
+
+    function salvarMedidasEAnalisar() {
+      quizData.peso_kg = parseFloat(document.getElementById('input-peso').value) || 78.0;
+      quizData.altura_cm = parseFloat(document.getElementById('input-altura').value) || 178;
+      quizData.peso_alvo_kg = parseFloat(document.getElementById('input-peso-alvo').value) || 70.0;
+
+      // Exibe Tela de Loading com IA
+      const container = document.getElementById('quiz-container');
+      container.innerHTML = `
+        <div class="loading-ai-container">
+          <i class="fas fa-circle-notch spinner-ai"></i>
+          <div class="quiz-step-title" id="ai-loading-title">Analisando Perfil Metabólico...</div>
+          <div class="quiz-step-subtitle" id="ai-loading-desc">Calculando taxa metabólica basal e calorias...</div>
+        </div>
+      `;
+
+      const mensagens = [
+        { t: "Calculando Balanço Energético...", d: "Cruzando nível de atividade com gasto calórico..." },
+        { t: "Ajustando Restrições & Culinária...", d: "Selecionando refeições práticas do estilo escolhido..." },
+        { t: "Diagnóstico Concluído!", d: "Gerando seu relatório personalizado..." }
+      ];
+
+      let msgIdx = 0;
+      const interval = setInterval(() => {
+        if (msgIdx < mensagens.length) {
+          document.getElementById('ai-loading-title').innerText = mensagens[msgIdx].t;
+          document.getElementById('ai-loading-desc').innerText = mensagens[msgIdx].d;
+          msgIdx++;
+        } else {
+          clearInterval(interval);
+          renderFormCapturaLead();
+        }
+      }, 1100);
+    }
+
+    // Tela de Captura de Lead
+    function renderFormCapturaLead() {
+      const container = document.getElementById('quiz-container');
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 14px;">
+          <i class="fas fa-circle-check" style="font-size: 2rem; color: var(--accent);"></i>
+        </div>
+        <div class="quiz-step-title" style="text-align: center;">Seu Diagnóstico Está Pronto!</div>
+        <div class="quiz-step-subtitle" style="text-align: center;">Onde devemos enviar o seu relatório completo e acesso ao cardápio?</div>
+        
+        <form id="formLead" onsubmit="enviarLeadEDiag(event)">
+          <div class="form-group">
+            <label>Seu Primeiro Nome:</label>
+            <input type="text" id="lead-name" placeholder="Ex: Renato" required>
+          </div>
+          <div class="form-group">
+            <label>Seu Melhor E-mail:</label>
+            <input type="email" id="lead-email" placeholder="Ex: seu@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>WhatsApp (com DDD):</label>
+            <input type="tel" id="lead-phone" placeholder="Ex: (21) 99999-9999" required>
+          </div>
+          <button type="submit" class="btn-action" id="btn-submit-lead">
+            <i class="fas fa-lock-open"></i> Ver Meu Diagnóstico & Plano
+          </button>
+        </form>
+      `;
+    }
+
+    // Envia para o backend e renderiza o diagnóstico
+    async function enviarLeadEDiag(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-lead');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processando...`;
+
+      quizData.name = document.getElementById('lead-name').value.trim();
+      quizData.email = document.getElementById('lead-email').value.trim();
+      quizData.phone = document.getElementById('lead-phone').value.trim();
+
+      try {
+        const res = await fetch('/api/v1/lead/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(quizData)
+        });
+        const diag = await res.json();
+
+        // Salva dados no navegador para pré-preencher o app principal
+        const perfilParaApp = {
+          idade: quizData.idade,
+          sexo: quizData.sexo,
+          peso: quizData.peso_kg,
+          altura: quizData.altura_cm,
+          nivel_atividade: quizData.nivel_atividade,
+          objetivo: quizData.objetivo,
+          ritmo_objetivo: "moderado",
+          refeicoes_por_dia: 4,
+          estilo_culinario: quizData.estilo_culinario,
+          preferencia: "onivoro",
+          dias_plano: 7
+        };
+        localStorage.setItem('nutricore_user_profile_pro', JSON.stringify(perfilParaApp));
+        localStorage.setItem('nutricore_target_weight', quizData.peso_alvo_kg);
+
+        renderResultadoDiagnostico(diag);
+      } catch (err) {
+        alert("Erro ao processar diagnóstico. Tente novamente.");
+        btn.disabled = false;
+      }
+    }
+
+    // Tela de Resultado & Oferta
+    function renderResultadoDiagnostico(diag) {
+      const container = document.getElementById('quiz-container');
+      const progress = document.getElementById('progress-fill');
+      progress.style.width = '100%';
+
+      container.innerHTML = `
+        <div style="text-align: center;">
+          <span style="background: rgba(16, 185, 129, 0.15); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;">
+            Diagnóstico Personalizado
+          </span>
+          <div class="quiz-step-title" style="margin-top: 8px;">Olá, ${quizData.name}!</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">${diag.mensagem_personalizada}</p>
+        </div>
+
+        <div class="metric-kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-title">Meta Calórica/Dia</div>
+            <div class="kpi-val">${diag.meta_calorica} <span style="font-size:0.75rem; color:var(--text-muted);">kcal</span></div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-title">Tempo Estimado</div>
+            <div class="kpi-val">${diag.semanas_estimadas} <span style="font-size:0.75rem; color:var(--text-muted);">semanas</span></div>
+          </div>
+        </div>
+
+        <div class="avatar-lead-box">
+          <div style="font-size: 2rem; color: var(--accent);"><i class="fas fa-chart-line"></i></div>
+          <div>
+            <strong style="font-size: 0.95rem; color: #fff;">Plano Adaptado ao Seu Perfil</strong>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+              Cardápios para ${quizData.estilo_culinario === 'caseiro_brasil' ? 'Comida Caseira BR' : 'Preparo Rápido'}, lista de compras para o mercado e substituição com IA.
+            </p>
+          </div>
+        </div>
+
+        <div style="background: #0f172a; border: 1px dashed var(--accent); border-radius: 10px; padding: 14px; text-align: center; margin-top: 14px;">
+          <div style="font-size: 0.82rem; color: var(--text-muted);">Acesso completo ao NutriCore Pro:</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #fff; margin: 4px 0;">
+            Apenas R$ 29,90 <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ mês</span>
+          </div>
+        </div>
+
+        <button class="btn-action" style="font-size: 1.05rem; padding: 16px; margin-top: 14px;" onclick="redirecionarParaApp()">
+          <i class="fas fa-unlock"></i> Desbloquear Meu Plano Completo
+        </button>
+      `;
+    }
+
+    function redirecionarParaApp() {
+      // Redireciona para o app com os dados do quiz já salvos
+      window.location.href = "/";
+    }
+
+    // Inicialização
+    renderStep();
+  </script>
+</body>
+</html>
