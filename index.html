@@ -6,8 +6,8 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA -->
-  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
-  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,11 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
   <!-- FONTAWESOME & BIBLIOTECAS -->
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js)" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <!-- Gerador de QR Code Visual -->
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js](https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js)"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
     :root {
@@ -642,7 +640,7 @@
         Abra o app do seu banco e escaneie o QR Code abaixo ou copie a chave:
       </p>
 
-      <div id="pix-qrcode-container" style="display:flex; justify-content:center; padding:12px; background:#fff; border-radius:8px; width:180px; height:180px; margin:0 auto 14px auto;"></div>
+      <div id="pix-qrcode-container" style="display:flex; align-items:center; justify-content:center; padding:8px; background:#fff; border-radius:8px; width:180px; height:180px; margin:0 auto 14px auto; border: 1px solid var(--border);"></div>
 
       <div class="form-group" style="text-align:left;">
         <label>Código Pix Copia e Cola:</label>
@@ -657,7 +655,6 @@
         <i class="fas fa-spinner fa-spin" style="color:var(--accent);"></i> Aguardando confirmação do banco...
       </div>
 
-      <!-- Botão de simulação para você testar a liberação em 1 clique -->
       <button onclick="testarAprovacaoImediata()" style="background:none; border:none; color:var(--text-muted); font-size:0.72rem; margin-top:14px; text-decoration:underline; cursor:pointer;">
         Simular aprovação (Modo Teste)
       </button>
@@ -826,7 +823,6 @@
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
 
-      // Atualiza badge de assinatura
       const badge = document.getElementById('user-status-badge');
       const btnAssinar = document.getElementById('btn-assinar-top');
       if (usuarioAtual?.subscription_status === 'active') {
@@ -928,7 +924,6 @@
         fecharModalPlanos();
         abrirModalPix(data.qr_code, data.qr_code_base64);
 
-        // Inicia polling de verificação a cada 3 segundos
         clearInterval(intervalPollingPix);
         intervalPollingPix = setInterval(verificarPagamentoPixAtivo, 3000);
       } catch (err) {
@@ -945,16 +940,11 @@
       container.innerHTML = '';
 
       if (qrCodeBase64) {
-        container.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" style="width:100%; height:100%; object-fit:contain;" />`;
+        container.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" style="width:160px; height:160px; object-fit:contain;" />`;
       } else {
-        new QRCode(container, {
-          text: qrCodeText,
-          width: 160,
-          height: 160,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
+        // Gerador de imagem direto via API pública (zero dependência e sem risco de erro)
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrCodeText)}`;
+        container.innerHTML = `<img src="${qrUrl}" alt="QR Code Pix" style="width:160px; height:160px;" />`;
       }
 
       document.getElementById('modalPix').classList.add('active');
@@ -1213,7 +1203,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -1326,9 +1316,8 @@
       });
     }
 
-    // Gerar Dieta Multi-Dias (com Paywall Inteligente)
+    // Gerar Dieta Multi-Dias
     async function gerarCardapio(payload) {
-      // Regra de Paywall: Plano > 1 dia requer assinatura PRO ativa
       if (parseInt(payload.dias_plano) > 1 && usuarioAtual?.subscription_status !== 'active') {
         abrirModalPlanos();
         return;
@@ -1685,7 +1674,7 @@
         t += `\n`;
       });
 
-      navigator.clipboard.writeText(t).then(() => alert('Lista completa de todos os dias copiada para enviar no WhatsApp!'));
+      navigator.clipboard.writeText(t).then(() => alert('Lista completa copiada para enviar no WhatsApp!'));
     }
 
     // PDF
