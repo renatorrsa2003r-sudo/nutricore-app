@@ -6,18 +6,18 @@
   <title>NutriCore Pro</title>
 
   <!-- SUPORTE A PWA / APP INSTALÁVEL NO CELULAR -->
-  <link rel="icon" type="image/png" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
-  <link rel="apple-touch-icon" href="[https://cdn-icons-png.flaticon.com/512/3063/3063169.png](https://cdn-icons-png.flaticon.com/512/3063/3063169.png)">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
-  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="[https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js)"></script>
-  <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS COM CDNS ESTÁVEIS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
     :root {
@@ -738,7 +738,6 @@
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
 
-      // 1. Busca dados da conta na nuvem (SQLite)
       const token = localStorage.getItem('nutricore_token');
       try {
         const res = await fetch('/api/v1/user/sync-data', {
@@ -977,7 +976,7 @@
       desc.innerText = silhuetaDesc;
 
       container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
           <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
           <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
@@ -1076,7 +1075,12 @@
       corpo.innerHTML = html;
     }
 
+    // Renderização Segura do Gráfico
     function renderizarGrafico() {
+      if (typeof Chart === 'undefined') {
+        console.warn('Chart.js ainda não carregou.');
+        return;
+      }
       const ctx = document.getElementById('graficoEvolucao');
       if (!ctx) return;
       const labels = historicoEvolucao.map(i => i.data.split('-').slice(1).reverse().join('/'));
