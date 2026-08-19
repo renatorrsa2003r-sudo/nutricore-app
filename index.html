@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NutriCore">
 
-  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS COM CDNS ESTÁVEIS -->
+  <!-- FONTAWESOME & BIBLIOTECAS EXTERNAS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -275,11 +275,17 @@
     <!-- ABA 1: PERFIL -->
     <section id="tab-perfil" class="tab-content active">
       <header>
-        <h1>Perfil & Metas</h1>
+        <div>
+          <h1>Perfil & Metas</h1>
+          <span id="sync-status-indicator" style="font-size: 0.78rem; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;">
+            <i class="fas fa-cloud-arrow-up"></i> Sincronizado na Nuvem
+          </span>
+        </div>
         <button class="btn-primary btn-action-sm" style="background:#ef4444; display:flex;" onclick="fazerLogout()">
           <i class="fas fa-right-from-bracket"></i> Sair da Conta
         </button>
       </header>
+
       <form id="profileForm">
         <div class="grid-2">
           <div class="card">
@@ -653,6 +659,7 @@
 
     let trocaContextoDia = 1;
     let trocaContextoRefIdx = 0;
+    let debounceSalvarTimer = null;
 
     // --- AUTENTICAÇÃO ---
     function alternarAbaAuth(modo) {
@@ -720,6 +727,12 @@
     async function salvarNaContaNuvem(dadosSync) {
       const token = localStorage.getItem('nutricore_token');
       if (!token) return;
+
+      const indicator = document.getElementById('sync-status-indicator');
+      if (indicator) {
+        indicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sincronizando...`;
+      }
+
       try {
         await fetch('/api/v1/user/sync-data', {
           method: 'POST',
@@ -729,8 +742,14 @@
           },
           body: JSON.stringify(dadosSync)
         });
+        if (indicator) {
+          indicator.innerHTML = `<i class="fas fa-cloud-arrow-up"></i> Sincronizado na Nuvem`;
+        }
       } catch(e) {
         console.error("Falha ao sincronizar na nuvem:", e);
+        if (indicator) {
+          indicator.innerHTML = `<i class="fas fa-circle-exclamation" style="color:#f59e0b;"></i> Salvo Localmente`;
+        }
       }
     }
 
@@ -775,6 +794,9 @@
         carregarEstadoPerfilLocal();
         carregarEvolucaoLocal();
       }
+
+      // Ativa escuta em todos os campos do formulário para auto-save contínuo
+      ativarAutoSavePerfil();
     }
 
     async function fazerLogout() {
@@ -790,6 +812,7 @@
       localStorage.removeItem('nutricore_token');
       localStorage.removeItem('nutricore_v2_diet');
       localStorage.removeItem('nutricore_evolution_v1');
+      localStorage.removeItem('nutricore_user_profile_pro');
       usuarioAtual = null;
       dadosPlanoAtual = null;
       historicoEvolucao = [];
@@ -851,23 +874,54 @@
       }
     }
 
-    function toggleTag(el) { el.classList.toggle('active'); salvarEstadoPerfil(); }
-    function preencherChip(texto) { document.getElementById('input-objetivo-funcional').value = texto; document.getElementById('formFuncional').dispatchEvent(new Event('submit')); }
+    function toggleTag(el) { 
+      el.classList.toggle('active'); 
+      salvarEstadoPerfil(); 
+    }
 
+    function preencherChip(texto) { 
+      document.getElementById('input-objetivo-funcional').value = texto; 
+      document.getElementById('formFuncional').dispatchEvent(new Event('submit')); 
+    }
+
+    // Auto-Save do Perfil
     function salvarEstadoPerfil() {
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
       const dados = {
-        idade: document.getElementById('idade').value, sexo: document.getElementById('sexo').value,
-        peso: document.getElementById('peso').value, altura: document.getElementById('altura').value,
-        nivel_atividade: document.getElementById('nivel_atividade').value, objetivo: document.getElementById('objetivo').value,
-        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, horario_acordar: document.getElementById('horario_acordar').value,
-        horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
-        refeicoes_por_dia: document.getElementById('refeicoes_por_dia').value, estilo_culinario: document.getElementById('estilo_culinario').value,
-        preferencia: document.getElementById('preferencia').value, alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
-        alimentos_evitar: document.getElementById('alimentos_evitar').value, dias_plano: document.getElementById('dias_plano').value, tags: tags
+        idade: parseInt(document.getElementById('idade').value) || 28, 
+        sexo: document.getElementById('sexo').value,
+        peso: parseFloat(document.getElementById('peso').value) || 78.0, 
+        altura: parseFloat(document.getElementById('altura').value) || 178,
+        nivel_atividade: document.getElementById('nivel_atividade').value, 
+        objetivo: document.getElementById('objetivo').value,
+        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, 
+        horario_acordar: document.getElementById('horario_acordar').value,
+        horario_dormir: document.getElementById('horario_dormir').value, 
+        horario_treino: document.getElementById('horario_treino').value,
+        refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value) || 4, 
+        estilo_culinario: document.getElementById('estilo_culinario').value,
+        preferencia: document.getElementById('preferencia').value, 
+        alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
+        alimentos_evitar: document.getElementById('alimentos_evitar').value, 
+        dias_plano: parseInt(document.getElementById('dias_plano').value) || 7, 
+        tags: tags
       };
+
       localStorage.setItem('nutricore_user_profile_pro', JSON.stringify(dados));
       salvarNaContaNuvem({ profile: dados });
+    }
+
+    function ativarAutoSavePerfil() {
+      const inputs = document.querySelectorAll('#profileForm input, #profileForm select, #profileForm textarea');
+      inputs.forEach(el => {
+        el.addEventListener('change', () => salvarEstadoPerfil());
+        if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) {
+          el.addEventListener('input', () => {
+            clearTimeout(debounceSalvarTimer);
+            debounceSalvarTimer = setTimeout(() => salvarEstadoPerfil(), 600);
+          });
+        }
+      });
     }
 
     function aplicarEstadoPerfil(d) {
@@ -888,13 +942,16 @@
       if (d.refeicoes_por_dia) document.getElementById('refeicoes_por_dia').value = d.refeicoes_por_dia;
       if (d.estilo_culinario) document.getElementById('estilo_culinario').value = d.estilo_culinario;
       if (d.preferencia) document.getElementById('preferencia').value = d.preferencia;
-      if (d.alimentos_favoritos) document.getElementById('alimentos_favoritos').value = d.alimentos_favoritos;
-      if (d.alimentos_evitar) document.getElementById('alimentos_evitar').value = d.alimentos_evitar;
-      if (Array.isArray(d.tags)) {
-        document.querySelectorAll('#container-tags-clinicas .tag-item').forEach(el => {
-          if (d.tags.includes(el.innerText.trim())) el.classList.add('active');
-        });
-      }
+      if (d.alimentos_favoritos !== undefined) document.getElementById('alimentos_favoritos').value = d.alimentos_favoritos;
+      if (d.alimentos_evitar !== undefined) document.getElementById('alimentos_evitar').value = d.alimentos_evitar;
+      
+      document.querySelectorAll('#container-tags-clinicas .tag-item').forEach(el => {
+        if (Array.isArray(d.tags) && d.tags.includes(el.innerText.trim())) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
     }
 
     function carregarEstadoPerfilLocal() {
@@ -1078,7 +1135,6 @@
     // Renderização Segura do Gráfico
     function renderizarGrafico() {
       if (typeof Chart === 'undefined') {
-        console.warn('Chart.js ainda não carregou.');
         return;
       }
       const ctx = document.getElementById('graficoEvolucao');
@@ -1585,6 +1641,7 @@
 
     document.getElementById('profileForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      salvarEstadoPerfil(); // Garante o sync imediato ao submeter
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
       gerarCardapio({
         idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
