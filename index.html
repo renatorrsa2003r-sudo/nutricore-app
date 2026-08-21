@@ -1,1843 +1,540 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NutriCore Pro</title>
-
-  <!-- SUPORTE A PWA -->
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063169.png">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#10b981">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NutriCore">
-
-  <!-- FONTAWESOME & BIBLIOTECAS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NutriCore Pro - Nutrição & Inteligência Metabólica</title>
+  <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+  <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              900: '#064e3b'
+            },
+            dark: {
+              bg: '#0b0f19',
+              card: '#111827',
+              border: '#1f2937'
+            }
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    :root {
-      --bg-main: #f8fafc;
-      --bg-card: #ffffff;
-      --bg-sidebar: #0f172a;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --accent: #10b981;
-      --accent-hover: #059669;
-      --border: #e2e8f0;
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
-    [data-theme="dark"] {
-      --bg-main: #0b0f19;
-      --bg-card: #1e293b;
-      --bg-sidebar: #020617;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border: #334155;
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
-
-    /* Barra Lateral Desktop */
-    aside { width: 260px; background-color: var(--bg-sidebar); color: #fff; display: flex; flex-direction: column; padding: 24px 16px; flex-shrink: 0; }
-    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: #10b981; margin-bottom: 24px; padding-left: 8px; }
-    .user-pill-sidebar { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-    .user-pill-sidebar span { font-size: 0.85rem; font-weight: 600; color: #fff; }
-    .nav-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; color: #94a3b8; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-    .nav-item:hover { background-color: rgba(255,255,255,0.05); color: #fff; }
-    .nav-item.active { background-color: var(--accent); color: #fff; }
-
-    /* Barra Mobile */
-    .mobile-nav { display: none; }
-
-    main { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 12px; }
-    header h1 { font-size: 1.5rem; font-weight: 700; }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-    .card { background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--card-shadow); margin-bottom: 16px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-
-    .form-group { margin-bottom: 14px; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-    input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.95rem; outline: none; }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-
-    button.btn-primary { background: var(--accent); color: white; border: none; padding: 12px 18px; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; text-decoration: none; width: 100%; }
-    button.btn-primary:hover { background: var(--accent-hover); }
-    button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .btn-action-sm { width: auto !important; padding: 8px 14px !important; font-size: 0.85rem !important; }
-
-    .metric-box { background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
-    .metric-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
-
-    .tag-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .tag-item { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
-    .tag-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
-
-    .day-selector-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-    .pill-opt { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--text-main); }
-    .pill-opt.selected { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
-
-    .days-pill-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: thin; }
-    .day-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
-    .day-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-    .meal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-top: 14px; box-shadow: var(--card-shadow); page-break-inside: avoid; position: relative; }
-    .meal-header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-    .meal-badge { background: rgba(16, 185, 129, 0.1); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; }
-    .meal-macros-mini { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
-    .meal-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
-    
-    .btn-swap-meal { background: rgba(16, 185, 129, 0.1); color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; transition: all 0.2s; }
-    .btn-swap-meal:hover { background: var(--accent); color: #fff; }
-
-    .recipe-section { margin-top: 10px; }
-    .recipe-section h4 { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; }
-    .ingredient-list { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 6px; }
-    .ingredient-list li { background: var(--bg-main); padding: 8px 10px; border-radius: 6px; font-size: 0.88rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-
-    .prep-box { background: var(--bg-main); padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent); margin-top: 12px; font-size: 0.88rem; line-height: 1.5; }
-    .tip-box { margin-top: 8px; font-size: 0.82rem; color: #d97706; background: rgba(217, 119, 6, 0.08); padding: 10px; border-radius: 6px; }
-
-    .chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .chip { background: var(--bg-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-main); }
-    .functional-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
-    .food-card { background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-    .food-card h4 { font-size: 1rem; color: var(--accent); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-    .food-card .portion { font-size: 0.72rem; background: rgba(16, 185, 129, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-weight: 700; }
-    .food-card p { font-size: 0.85rem; line-height: 1.4; margin-top: 4px; }
-
-    .shopping-day-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
-    .shopping-day-title { font-size: 1.05rem; font-weight: 700; color: var(--accent); border-bottom: 2px solid rgba(16, 185, 129, 0.2); padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .shopping-meal-title { font-size: 0.9rem; font-weight: 700; color: var(--text-muted); margin: 10px 0 6px 0; text-transform: uppercase; }
-    .shopping-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; user-select: none; background: var(--bg-main); border: 1px solid var(--border); font-size: 0.88rem; }
-    .shopping-item:hover { border-color: var(--accent); }
-    .shopping-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
-    .shopping-item.checked span { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
-
-    .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
-    .history-table th, .history-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
-    .history-table th { color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; }
-
-    .recalibrate-banner { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-
-    .avatar-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(16,185,129,0.06) 0%, var(--bg-card) 75%); border: 1px solid var(--border); border-radius: 12px; padding: 16px; position: relative; }
-    .avatar-wrapper { position: relative; width: 150px; height: 180px; display: flex; align-items: center; justify-content: center; }
-    .avatar-aura { position: absolute; width: 130px; height: 160px; border-radius: 50%; filter: blur(24px); opacity: 0.35; z-index: 1; }
-    .avatar-svg-container { z-index: 2; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    .avatar-badge { z-index: 3; margin-top: 6px; background: rgba(16,185,129,0.12); color: var(--accent); font-weight: 700; font-size: 0.78rem; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--accent); text-transform: uppercase; }
-    .avatar-stat-tag { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-align: center; }
-
-    /* MODAIS */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; }
-    .modal-overlay.active { display: flex; }
-    .modal-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 480px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); animation: fadeIn 0.2s ease-out; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .modal-header h3 { font-size: 1.15rem; color: var(--accent); }
-    .modal-close-btn { background: none; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; }
-
-    /* TELA DE PLANOS & PAYWALL */
-    .pricing-card { background: var(--bg-main); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
-    .pricing-card.selected { border-color: var(--accent); background: rgba(16, 185, 129, 0.08); }
-    .pricing-badge { position: absolute; top: 12px; right: 12px; background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-
-    /* TELA DE AUTENTICAÇÃO / LOGIN */
-    #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .auth-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px 24px; max-width: 400px; width: 100%; color: #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
-    .auth-toggle-btns { display: flex; background: #0f172a; padding: 4px; border-radius: 10px; margin: 20px 0; }
-    .auth-toggle-btn { flex: 1; padding: 10px; background: none; border: none; color: #94a3b8; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
-    .auth-toggle-btn.active { background: var(--accent); color: #fff; }
-
-    #loading, #loading-funcional, #loading-treino, #loading-troca { display: none; text-align: center; padding: 30px 20px; }
-    .spinner { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-
-    /* RESPONSIVIDADE MOBILE */
-    @media (max-width: 768px) {
-      body { flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
-      aside { display: none; }
-      main { padding: 14px; padding-bottom: 90px; height: 100%; width: 100%; }
-      .grid-2 { grid-template-columns: 1fr; }
-      
-      .mobile-nav {
-        display: flex;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: var(--bg-card);
-        border-top: 1px solid var(--border);
-        justify-content: space-around;
-        padding: 10px 0;
-        z-index: 999;
-        box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
-      }
-      .mob-nav-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        font-size: 0.65rem;
-        color: var(--text-muted);
-        cursor: pointer;
-        gap: 3px;
-        background: none;
-        border: none;
-        padding: 0;
-      }
-      .mob-nav-btn.active { color: var(--accent); font-weight: 700; }
-      .mob-nav-btn i { font-size: 1.15rem; }
-    }
+    body { background-color: #0b0f19; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .glass-card { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid #1f2937; }
+    .budget-radio:checked + div { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between">
 
-  <!-- TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO) -->
-  <div id="auth-screen">
-    <div class="auth-card">
-      <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent); margin-bottom: 4px;">
-        <i class="fas fa-leaf"></i> NutriCore Pro
+  <!-- NAVBAR -->
+  <header class="border-b border-dark-border bg-dark-card/90 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl text-emerald-400 font-extrabold flex items-center gap-2">
+          <i class="fa-solid fa-leaf"></i> NutriCore <span class="text-xs bg-emerald-500 text-black px-2 py-0.5 rounded font-black tracking-wider">PRO</span>
+        </span>
       </div>
-      <p style="font-size: 0.85rem; color: #94a3b8;">Sua plataforma inteligente de nutrição e treinos</p>
+      
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
+        <button onclick="showSection('dieta')" class="hover:text-emerald-400 transition-colors"><i class="fa-solid fa-utensils mr-1"></i> Gerar Plano</button>
+        <button onclick="showSection('protocolo')" class="hover:text-emerald-400 transition-colors"><i class="fa-solid fa-stethoscope mr-1"></i> Analisar Protocolo</button>
+        <button onclick="showSection('treino')" class="hover:text-emerald-400 transition-colors"><i class="fa-solid fa-dumbbell mr-1"></i> Treinos</button>
+        <button onclick="showSection('scanner')" class="hover:text-emerald-400 transition-colors"><i class="fa-solid fa-camera mr-1"></i> Scanner Prato</button>
+      </nav>
 
-      <div class="auth-toggle-btns">
-        <button class="auth-toggle-btn active" id="btn-tab-login" onclick="alternarAbaAuth('login')">Entrar</button>
-        <button class="auth-toggle-btn" id="btn-tab-cadastro" onclick="alternarAbaAuth('cadastro')">Criar Conta</button>
-      </div>
-
-      <form id="formAuth" style="text-align: left;">
-        <div class="form-group" id="group-auth-nome" style="display: none;">
-          <label style="color: #cbd5e1;">Nome Completo</label>
-          <input type="text" id="auth-nome" placeholder="Seu nome" style="background:#0f172a; border-color:#334155; color:#fff;">
-        </div>
-        <div class="form-group">
-          <label style="color: #cbd5e1;">E-mail</label>
-          <input type="email" id="auth-email" placeholder="seu@email.com" required style="background:#0f172a; border-color:#334155; color:#fff;">
-        </div>
-        <div class="form-group">
-          <label style="color: #cbd5e1;">Senha</label>
-          <input type="password" id="auth-senha" placeholder="Mínimo 6 caracteres" required style="background:#0f172a; border-color:#334155; color:#fff;">
-        </div>
-        <button type="submit" class="btn-primary" id="btn-submit-auth" style="margin-top: 10px;">
-          <i class="fas fa-right-to-bracket"></i> Acessar NutriCore Pro
+      <div class="flex items-center gap-3">
+        <button onclick="openPixModal()" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-dark-bg font-bold px-4 py-2 rounded-xl text-sm shadow-lg flex items-center gap-2">
+          <i class="fa-brands fa-pix"></i> Assinar PRO
         </button>
-      </form>
+        <button onclick="openAuthModal()" id="btnAuth" class="border border-gray-700 bg-gray-800 hover:bg-gray-700 text-white font-medium px-3 py-2 rounded-xl text-sm">
+          <i class="fa-solid fa-user"></i>
+        </button>
+      </div>
     </div>
+  </header>
+
+  <!-- BANNER DE TESTE PRO INSTANTÂNEO -->
+  <div id="proBanner" class="bg-emerald-950/60 border-b border-emerald-800/40 px-4 py-2 text-center text-xs flex items-center justify-center gap-3">
+    <span class="text-emerald-300">⚡ Quer testar todas as funções PRO agora?</span>
+    <button onclick="triggerSimulatePro()" class="bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold px-3 py-1 rounded-md text-[11px] uppercase tracking-wider transition-all">
+      Ativar Modo Teste PRO
+    </button>
   </div>
 
-  <!-- BARRA LATERAL (DESKTOP) -->
-  <aside>
-    <div class="brand"><i class="fas fa-leaf"></i> NutriCore Pro</div>
-    <div class="user-pill-sidebar" id="user-info-sidebar">
-      <div>
-        <div style="font-size: 0.72rem; color: #94a3b8;">Conectado como:</div>
-        <span id="user-name-display">Usuário</span>
-        <div id="user-status-badge" style="font-size:0.68rem; color:#f59e0b; font-weight:bold; margin-top:2px;">Trial Grátis</div>
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+
+    <!-- SEÇÃO 1: GERADOR DE PLANO ALIMENTAR (COM FILTRO DE ORÇAMENTO) -->
+    <section id="sec-dieta" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- FORMULÁRIO DE PERFIL -->
+      <div class="lg:col-span-5 glass-card p-6 rounded-2xl">
+        <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-emerald-400"></i> Parâmetros do Paciente
+        </h2>
+        <p class="text-xs text-gray-400 mb-6">Ajuste métricas corporais e a capacidade de investimento diário.</p>
+
+        <form id="formPlan" onsubmit="handleGeneratePlan(event)" class="space-y-4 text-sm">
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Idade</label>
+              <input type="number" id="inpAge" value="28" min="15" max="100" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Sexo</label>
+              <select id="inpGender" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Peso Atual (kg)</label>
+              <input type="number" id="inpWeight" step="0.1" value="78" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Altura (cm)</label>
+              <input type="number" id="inpHeight" value="178" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Nível de Atividade</label>
+              <select id="inpActivity" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+                <option value="sedentario">Sedentário (Pouco ou nada)</option>
+                <option value="moderado" selected>Moderado (3-5x/semana)</option>
+                <option value="intenso">Intenso (6-7x/semana)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-300 text-xs font-semibold mb-1">Objetivo Clínico</label>
+              <select id="inpGoal" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none">
+                <option value="perda_peso">Emagrecimento / Queima</option>
+                <option value="hipertrofia">Hipertrofia / Massa Magra</option>
+                <option value="manutencao">Manutenção & Saúde</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ÁREA ESTRATÉGICA: 3 FAIXAS DE ORÇAMENTO -->
+          <div class="pt-2">
+            <label class="block text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wider">
+              💰 Capacidade de Investimento Alimentar:
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              
+              <!-- Econômico -->
+              <label class="cursor-pointer">
+                <input type="radio" name="budget_tier" value="economico" class="budget-radio hidden" checked>
+                <div class="border border-gray-700 bg-gray-900/90 p-2.5 rounded-xl transition-all text-center">
+                  <div class="text-base mb-1">🟢</div>
+                  <div class="font-bold text-white text-xs">Econômico</div>
+                  <div class="text-[10px] text-emerald-400 mt-1">R$ 12-18/dia</div>
+                </div>
+              </label>
+
+              <!-- Moderado -->
+              <label class="cursor-pointer">
+                <input type="radio" name="budget_tier" value="moderado" class="budget-radio hidden">
+                <div class="border border-gray-700 bg-gray-900/90 p-2.5 rounded-xl transition-all text-center">
+                  <div class="text-base mb-1">🟡</div>
+                  <div class="font-bold text-white text-xs">Equilibrado</div>
+                  <div class="text-[10px] text-yellow-400 mt-1">R$ 22-35/dia</div>
+                </div>
+              </label>
+
+              <!-- Premium -->
+              <label class="cursor-pointer">
+                <input type="radio" name="budget_tier" value="premium" class="budget-radio hidden">
+                <div class="border border-gray-700 bg-gray-900/90 p-2.5 rounded-xl transition-all text-center">
+                  <div class="text-base mb-1">🟣</div>
+                  <div class="font-bold text-white text-xs">Gourmet</div>
+                  <div class="text-[10px] text-purple-400 mt-1">R$ 45+/dia</div>
+                </div>
+              </label>
+
+            </div>
+          </div>
+
+          <button type="submit" id="btnGenPlan" class="w-full bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4 text-base">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cardápio Inteligente
+          </button>
+        </form>
       </div>
-      <button onclick="fazerLogout()" style="background:none; border:none; color:#ef4444; cursor:pointer;" title="Sair da conta">
-        <i class="fas fa-right-from-bracket"></i>
-      </button>
-    </div>
-    <ul class="nav-list">
-      <li class="nav-item active" onclick="switchTab('perfil')"><i class="fas fa-user"></i> Meu Perfil</li>
-      <li class="nav-item" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i> Plano Alimentar</li>
-      <li class="nav-item" onclick="switchTab('evolucao')"><i class="fas fa-chart-line"></i> Evolução & Peso</li>
-      <li class="nav-item" onclick="switchTab('funcional')"><i class="fas fa-flask-vial"></i> Nutrição Funcional</li>
-      <li class="nav-item" onclick="switchTab('treino')"><i class="fas fa-dumbbell"></i> Treino</li>
-      <li class="nav-item" onclick="switchTab('compras')"><i class="fas fa-shopping-cart"></i> Lista de Compras</li>
-      <li class="nav-item" onclick="switchTab('configuracoes')"><i class="fas fa-gear"></i> Configurações</li>
-    </ul>
-  </aside>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main>
-    <!-- ABA 1: PERFIL -->
-    <section id="tab-perfil" class="tab-content active">
-      <header>
-        <div>
-          <h1>Perfil & Metas</h1>
-          <span id="sync-status-indicator" style="font-size: 0.78rem; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;">
-            <i class="fas fa-cloud-arrow-up"></i> Sincronizado na Nuvem
-          </span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-primary btn-action-sm" id="btn-assinar-top" style="background:#f59e0b;" onclick="abrirModalPlanos()">
-            <i class="fas fa-crown"></i> Assinar Pro
-          </button>
-          <button class="btn-primary btn-action-sm" style="background:#ef4444;" onclick="fazerLogout()">
-            <i class="fas fa-right-from-bracket"></i> Sair
-          </button>
-        </div>
-      </header>
-
-      <form id="profileForm">
-        <div class="grid-2">
-          <div class="card">
-            <h3>1. Dados Físicos</h3>
-            <div class="grid-2" style="margin-top: 12px;">
-              <div class="form-group"><label>Idade</label><input type="number" id="idade" value="28" required></div>
-              <div class="form-group"><label>Sexo</label><select id="sexo"><option value="masculino">Masculino</option><option value="feminino">Feminino</option></select></div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Peso (kg)</label><input type="number" step="0.1" id="peso" value="78.0" required></div>
-              <div class="form-group"><label>Altura (cm)</label><input type="number" id="altura" value="178" required></div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Atividade</label>
-                <select id="nivel_atividade">
-                  <option value="sedentario">Sedentário</option><option value="leve">Leve (1-3x/sem)</option>
-                  <option value="moderado" selected>Moderado (3-5x/sem)</option><option value="intenso">Intenso (Diário)</option>
-                </select>
-              </div>
-              <div class="form-group"><label>Objetivo</label>
-                <select id="objetivo"><option value="perda_peso">Emagrecimento</option><option value="manutencao">Manutenção</option><option value="hipertrofia">Hipertrofia</option></select>
-              </div>
-            </div>
-            <div class="form-group"><label>Ritmo do Objetivo</label>
-              <select id="ritmo_objetivo"><option value="conservador">Conservador</option><option value="moderado" selected>Moderado</option><option value="agressivo">Agressivo</option></select>
-            </div>
+      <!-- PAINEL DE RESULTADO DA DIETA -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- RESUMO METABÓLICO -->
+        <div id="macroBoard" class="glass-card p-6 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800">
+            <div class="text-xs text-gray-400 font-semibold uppercase">Calorias Alvo</div>
+            <div id="valCalories" class="text-2xl font-black text-emerald-400 mt-1">2.150</div>
+            <div class="text-[10px] text-gray-500">kcal/dia</div>
           </div>
-
-          <div class="card">
-            <h3>2. Duração do Plano Alimentar</h3>
-            <label style="margin-top: 8px;">Opções Rápidas:</label>
-            <div class="day-selector-pills">
-              <span class="pill-opt" onclick="setDiasPlano(1)">1 Dia</span>
-              <span class="pill-opt" onclick="setDiasPlano(3)">3 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(5)">5 Dias</span>
-              <span class="pill-opt selected" onclick="setDiasPlano(7)">7 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(10)">10 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(15)">15 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(20)">20 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(30)">30 Dias</span>
-            </div>
-            <div class="form-group" style="margin-top: 10px;">
-              <label>Ou digite a quantidade exata de dias (1 a 30 dias):</label>
-              <input type="number" id="dias_plano" min="1" max="30" value="7" required onchange="sincronizarPillDias(this.value)">
-            </div>
+          <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800">
+            <div class="text-xs text-gray-400 font-semibold uppercase">Proteínas</div>
+            <div id="valProt" class="text-2xl font-black text-blue-400 mt-1">156g</div>
+            <div class="text-[10px] text-gray-500">2.0g por kg</div>
+          </div>
+          <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800">
+            <div class="text-xs text-gray-400 font-semibold uppercase">Carboidratos</div>
+            <div id="valCarb" class="text-2xl font-black text-amber-400 mt-1">220g</div>
+            <div class="text-[10px] text-gray-500">Energia limpa</div>
+          </div>
+          <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800">
+            <div class="text-xs text-gray-400 font-semibold uppercase">Gorduras</div>
+            <div id="valFat" class="text-2xl font-black text-rose-400 mt-1">58g</div>
+            <div class="text-[10px] text-gray-500">Lipídios vitais</div>
           </div>
         </div>
 
-        <div class="grid-2">
-          <div class="card">
-            <h3>3. Rotina & Refeições</h3>
-            <div class="grid-2" style="margin-top: 12px;">
-              <div class="form-group"><label>Acorda</label><input type="time" id="horario_acordar" value="07:00"></div>
-              <div class="form-group"><label>Dorme</label><input type="time" id="horario_dormir" value="23:00"></div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Treino</label>
-                <select id="horario_treino"><option value="nenhum">Nenhum</option><option value="manha" selected>Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option></select>
-              </div>
-              <div class="form-group"><label>Refeições/Dia</label>
-                <select id="refeicoes_por_dia"><option value="3">3 Refeições</option><option value="4" selected>4 Refeições</option><option value="5">5 Refeições</option></select>
-              </div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Culinária</label>
-                <select id="estilo_culinario"><option value="caseiro_brasil">Caseira BR</option><option value="pratico_rapido">Prática/Rápida</option><option value="mediterraneo">Mediterrânea</option></select>
-              </div>
-              <div class="form-group"><label>Padrão</label>
-                <select id="preferencia"><option value="onivoro">Onívoro</option><option value="vegetariano">Vegetariano</option><option value="vegano">Vegano</option><option value="low_carb">Low-Carb</option></select>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>4. Preferências & Foco Clínico</h3>
-            <div class="form-group" style="margin-top: 12px;"><label>Alimentos Favoritos</label><input type="text" id="alimentos_favoritos" placeholder="Ex: Frango, batata doce, banana..."></div>
-            <div class="form-group"><label>Evitar / Restrições</label><input type="text" id="alimentos_evitar" placeholder="Ex: Cebola, pimentão..."></div>
-            <label style="margin-top: 8px;">Condições Clínicas (toque para ativar):</label>
-            <div class="tag-selector" id="container-tags-clinicas">
-              <div class="tag-item" onclick="toggleTag(this)">Sem Glúten</div>
-              <div class="tag-item" onclick="toggleTag(this)">Sem Lactose</div>
-              <div class="tag-item" onclick="toggleTag(this)">Gastrite / Refluxo</div>
-              <div class="tag-item" onclick="toggleTag(this)">Diabetes</div>
-              <div class="tag-item" onclick="toggleTag(this)">Hipertensão</div>
-            </div>
+        <!-- LISTA DE REFEIÇÕES -->
+        <div id="mealsContainer" class="space-y-4">
+          <!-- Carregado dinamicamente via JS -->
+          <div class="glass-card p-8 rounded-2xl text-center text-gray-400">
+            <i class="fa-solid fa-bowl-food text-4xl text-gray-600 mb-3"></i>
+            <p>Selecione os parâmetros e clique em <b>Gerar Cardápio Inteligente</b>.</p>
           </div>
         </div>
 
-        <button type="submit" id="btn-gerar" class="btn-primary">
-          <i class="fas fa-wand-magic-sparkles"></i> Gerar Plano Alimentar Completo
+      </div>
+
+    </section>
+
+    <!-- SEÇÃO 2: ANALISADOR DE PROTOCOLO -->
+    <section id="sec-protocolo" class="hidden max-w-4xl mx-auto space-y-6">
+      <div class="glass-card p-6 rounded-2xl">
+        <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-file-medical text-emerald-400"></i> Parecer Clínico de Protocolo
+        </h2>
+        <p class="text-xs text-gray-400 mb-4">Cole a sua rotina ou plano alimentar atual para receber uma auditoria nutricional detalhada.</p>
+
+        <textarea id="txtProtocol" rows="4" placeholder="Ex: Café: 3 ovos com pão integral. Almoço: 150g frango com arroz e feijão. Lanche: iogurte com aveia. Jantar: peixe com legumes..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-white focus:border-emerald-500 outline-none"></textarea>
+
+        <button onclick="handleAnalyzeProtocol()" id="btnAnalyze" class="w-full bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold py-3.5 rounded-xl mt-4 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-magnifying-glass-chart"></i> Executar Análise com IA
         </button>
-      </form>
-    </section>
+      </div>
 
-    <!-- ABA 2: DIETA -->
-    <section id="tab-dieta" class="tab-content">
-      <header>
-        <h1>Plano Nutricional</h1>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="baixarPDFPlanoNutricional()">
-            <i class="fas fa-file-pdf"></i> Baixar PDF
-          </button>
-          <button class="btn-primary btn-action-sm" style="background: var(--accent);" onclick="switchTab('compras')">
-            <i class="fas fa-shopping-cart"></i> Ver Lista
-          </button>
-        </div>
-      </header>
-      
-      <div>
-        <div class="grid-4" style="margin-bottom: 14px;">
-          <div class="card metric-box"><label>Calorias/Dia</label><div class="metric-value" id="card-calorias">-- kcal</div></div>
-          <div class="card metric-box"><label>Proteínas</label><div class="metric-value" id="card-proteinas">-- g</div></div>
-          <div class="card metric-box"><label>Carbos</label><div class="metric-value" id="card-carbos">-- g</div></div>
-          <div class="card metric-box"><label>Gorduras</label><div class="metric-value" id="card-gorduras">-- g</div></div>
-        </div>
-
-        <div id="loading">
-          <i class="fas fa-circle-notch spinner"></i>
-          <p style="margin-top: 12px; font-weight: 600;">Calculando porções e variando cardápios para o período selecionado...</p>
-        </div>
-
-        <div id="container-dias-navegacao" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label style="margin: 0;">Selecione o Dia:</label>
-            <button id="btn-toggle-ver-todos" onclick="alternarVerTodosDias()" style="background:none; border:none; color:var(--accent); font-size:0.82rem; font-weight:700; cursor:pointer;">
-              <i class="fas fa-list"></i> Ver Todos os Dias
-            </button>
-          </div>
-          <div class="days-pill-container" id="pills-dias"></div>
-          <div id="titulo-dia-atual" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); margin: 10px 0 4px 0;"></div>
-        </div>
-
-        <div id="lista-refeicoes"></div>
+      <div id="protocolResult" class="hidden glass-card p-6 rounded-2xl space-y-4">
+        <!-- Resultado da análise -->
       </div>
     </section>
 
-    <!-- ABA 3: EVOLUÇÃO -->
-    <section id="tab-evolucao" class="tab-content">
-      <header><h1>Evolução & Peso</h1></header>
-      <div id="banner-recalibrar" style="display: none;" class="recalibrate-banner">
-        <div><strong><i class="fas fa-arrow-trend-down"></i> Seu peso mudou!</strong><p style="font-size: 0.85rem;" id="texto-recalibrar"></p></div>
-        <button class="btn-primary btn-action-sm" onclick="aplicarRecalibracao()">Recalibrar</button>
-      </div>
-
-      <div class="grid-4">
-        <div class="card metric-box"><label>Inicial</label><div class="metric-value" id="kpi-peso-inicial">--</div></div>
-        <div class="card metric-box"><label>Atual</label><div class="metric-value" id="kpi-peso-atual">--</div></div>
-        <div class="card metric-box"><label>Variação</label><div class="metric-value" id="kpi-variacao-total">--</div></div>
-        <div class="card metric-box"><label>Meta</label><div class="metric-value" id="kpi-meta-peso" style="color: #0284c7;">--</div></div>
-      </div>
-
-      <div class="grid-2">
-        <div class="avatar-card">
-          <h3 style="font-size: 0.95rem; margin-bottom: 4px; color: var(--accent);">Avatar Metabólico</h3>
-          <div class="avatar-wrapper">
-            <div class="avatar-aura" id="avatar-aura-glow"></div>
-            <div class="avatar-svg-container" id="avatar-container-svg"></div>
-          </div>
-          <div class="avatar-badge" id="avatar-badge-status">Modo Ativo</div>
-          <div class="avatar-stat-tag" id="avatar-stat-desc">Sincronizado</div>
+    <!-- SEÇÃO 3: TREINOS -->
+    <section id="sec-treino" class="hidden max-w-4xl mx-auto space-y-6">
+      <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Prescrição de Treino Metabólico</h2>
+          <p class="text-xs text-gray-400">Divisão sinérgica com a sua meta nutricional.</p>
         </div>
-
-        <div class="card">
-          <h3>Novo Check-in</h3>
-          <form id="formEvolucao" style="margin-top: 10px;">
-            <div class="grid-2">
-              <div class="form-group"><label>Data</label><input type="date" id="evo-data" required></div>
-              <div class="form-group"><label>Peso (kg)</label><input type="number" step="0.1" id="evo-peso" placeholder="77.4" required></div>
-            </div>
-            <div class="grid-2">
-              <div class="form-group"><label>Cintura (cm)</label><input type="number" step="0.5" id="evo-cintura" placeholder="84"></div>
-              <div class="form-group"><label>Meta Final (kg)</label><input type="number" step="0.1" id="evo-meta" placeholder="72.0"></div>
-            </div>
-            <div class="form-group"><label>Sensação / Energia</label><input type="text" id="evo-obs" placeholder="Leve e disposto"></div>
-            <button type="submit" class="btn-primary">Salvar Check-in</button>
-          </form>
-        </div>
+        <button onclick="handleGenerateWorkout()" class="bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-bold px-4 py-2 rounded-xl text-sm">
+          Gerar Novo Treino
+        </button>
       </div>
+      <div id="workoutContainer" class="space-y-4"></div>
+    </section>
 
-      <div class="card">
-        <h3>Gráfico de Progresso</h3>
-        <div style="position: relative; height: 220px; margin-top: 10px;"><canvas id="graficoEvolucao"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Histórico</h3>
-        <div style="overflow-x: auto;">
-          <table class="history-table">
-            <thead><tr><th>Data</th><th>Peso</th><th>Var.</th><th>Cintura</th><th>Nota</th><th></th></tr></thead>
-            <tbody id="tabela-historico-corpo"></tbody>
-          </table>
-        </div>
+    <!-- SEÇÃO 4: SCANNER DE PRATOS -->
+    <section id="sec-scanner" class="hidden max-w-3xl mx-auto space-y-6 text-center">
+      <div class="glass-card p-8 rounded-2xl space-y-4">
+        <i class="fa-solid fa-camera-viewfinder text-5xl text-emerald-400"></i>
+        <h2 class="text-xl font-bold text-white">Scanner Nutricional por Imagem</h2>
+        <p class="text-xs text-gray-400 max-w-md mx-auto">Tire uma foto do seu prato para estimar calorias e macronutrientes automaticamente.</p>
+        
+        <input type="file" id="filePlate" accept="image/*" class="hidden" onchange="handlePlateScan()">
+        <button onclick="document.getElementById('filePlate').click()" class="bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold px-6 py-3.5 rounded-xl text-sm">
+          <i class="fa-solid fa-upload mr-2"></i> Enviar Foto do Prato
+        </button>
+
+        <div id="scanResult" class="hidden text-left p-4 bg-gray-900 border border-gray-800 rounded-xl mt-4 space-y-2"></div>
       </div>
     </section>
 
-    <!-- ABA 4: NUTRIÇÃO FUNCIONAL -->
-    <section id="tab-funcional" class="tab-content">
-      <header><h1>Nutrição Funcional</h1></header>
-      <div class="card">
-        <h3>O que deseja otimizar hoje?</h3>
-        <form id="formFuncional" style="margin-top: 12px;">
-          <div class="form-group"><input type="text" id="input-objetivo-funcional" placeholder="Ex: Quero mais energia à tarde..." required></div>
-          <div class="chip-container">
-            <span class="chip" onclick="preencherChip('Quero mais energia e disposição no dia a dia')">⚡ Disposição</span>
-            <span class="chip" onclick="preencherChip('Preciso desinchar e retenção de líquido')">💧 Desinchar</span>
-            <span class="chip" onclick="preencherChip('Quero melhorar meu sono e relaxamento à noite')">😴 Sono</span>
-            <span class="chip" onclick="preencherChip('Foco e concentração mental para estudos/trabalho')">🧠 Foco</span>
-          </div>
-          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fas fa-microscope"></i> Analisar Protocolo</button>
-        </form>
-      </div>
-      <div id="loading-funcional">
-        <i class="fas fa-circle-notch spinner"></i>
-        <p style="margin-top: 10px; font-weight: 600;">Analisando compostos bioativos...</p>
-      </div>
-      <div id="resultado-funcional"></div>
-    </section>
-
-    <!-- ABA 5: TREINO -->
-    <section id="tab-treino" class="tab-content">
-      <header><h1>Treino Personalizado</h1></header>
-      <div class="card">
-        <h3>Configurar Sessão de Exercícios</h3>
-        <form id="formTreino" style="margin-top: 12px;">
-          <div class="grid-2">
-            <div class="form-group"><label>Nível</label>
-              <select id="treino-nivel">
-                <option value="iniciante">Iniciante</option>
-                <option value="intermediario" selected>Intermediário</option>
-                <option value="avancado">Avançado</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Foco</label>
-              <select id="treino-foco">
-                <option value="hipertrofia" selected>Hipertrofia</option>
-                <option value="emagrecimento">Emagrecimento / Queima</option>
-                <option value="resistencia">Resistência</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="form-group"><label>Equipamento</label>
-              <select id="treino-equipamento">
-                <option value="academia" selected>Academia Completa</option>
-                <option value="peso_corporal">Peso Corporal (Calistenia)</option>
-                <option value="halter_casa">Halteres em Casa</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Tempo (minutos)</label>
-              <select id="treino-tempo">
-                <option value="30">30 min</option>
-                <option value="45" selected>45 min</option>
-                <option value="60">60 min</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn-primary" style="margin-top: 12px;"><i class="fas fa-dumbbell"></i> Gerar Treino com IA</button>
-        </form>
-      </div>
-      <div id="loading-treino">
-        <i class="fas fa-circle-notch spinner"></i>
-        <p style="margin-top: 10px; font-weight: 600;">Montando sua série de exercícios...</p>
-      </div>
-      <div id="resultado-treino"></div>
-    </section>
-
-    <!-- ABA 6: COMPRAS -->
-    <section id="tab-compras" class="tab-content">
-      <header>
-        <h1>Lista de Compras</h1>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-primary btn-action-sm" style="background: #25D366;" onclick="copiarListaWhatsApp()">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-          </button>
-          <button class="btn-primary btn-action-sm" style="background: #0284c7;" onclick="baixarPDFListaCompras()">
-            <i class="fas fa-file-pdf"></i> PDF
-          </button>
-        </div>
-      </header>
-
-      <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <span style="font-size: 0.88rem; font-weight: 700; color: var(--accent);" id="resumo-dias-compras">
-          <i class="fas fa-basket-shopping"></i> Ingredientes de Todos os Dias
-        </span>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label style="margin: 0; font-size: 0.85rem;">Modo de Visualização:</label>
-          <select id="select-modo-compras" onchange="alternarModoVisualizacaoCompras(this.value)" style="width: auto; padding: 6px 10px;">
-            <option value="dias" selected>Separado por Dias (Dia 1, 2, ...)</option>
-            <option value="consolidado">Lista Consolidada (Mercado)</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="conteudo-lista-compras"></div>
-    </section>
-
-    <!-- ABA 7: CONFIGURAÇÕES -->
-    <section id="tab-configuracoes" class="tab-content">
-      <header><h1>Configurações</h1></header>
-      <div class="card">
-        <div class="form-group"><label>Chave API Gemini</label><input type="password" id="gemini-key" placeholder="Cole sua chave aqui"></div>
-        <div class="form-group"><label>Tema</label><select id="tema" onchange="alterarTema(this.value)"><option value="light">Claro</option><option value="dark">Escuro</option></select></div>
-        <button class="btn-primary" onclick="salvarConfiguracoes()">Salvar Configurações</button>
-      </div>
-      
-      <div class="card" id="install-card" style="display: none; border: 2px dashed var(--accent);">
-        <h3><i class="fas fa-mobile-screen-button" style="color: var(--accent);"></i> Instalar Aplicativo</h3>
-        <p style="font-size: 0.88rem; color: var(--text-muted); margin: 6px 0 12px 0;">Instale o NutriCore Pro na tela inicial do seu celular para acesso rápido em tela cheia.</p>
-        <button class="btn-primary" onclick="instalarApp()"><i class="fas fa-download"></i> Instalar na Tela Inicial</button>
-      </div>
-    </section>
   </main>
 
-  <!-- MODAL DE PLANOS / PAYWALL -->
-  <div class="modal-overlay" id="modalPlanos">
-    <div class="modal-box" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3><i class="fas fa-crown" style="color:#f59e0b;"></i> Desbloqueie o NutriCore Pro</h3>
-        <button class="modal-close-btn" onclick="fecharModalPlanos()">&times;</button>
-      </div>
-      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
-        Acesse planos de 1 a 30 dias, substituição de alimentos ilimitada com IA, treinos avançados e exportações em PDF.
-      </p>
-
-      <!-- Opção Mensal -->
-      <div class="pricing-card selected" id="card-plan-mensal" onclick="selecionarPlanoAssinatura('mensal')">
-        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Plano Mensal</div>
-        <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 4px;">R$ 29,90 <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ mês</span></div>
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Acesso completo, renovação mensal sem fidelidade.</div>
-      </div>
-
-      <!-- Opção Anual -->
-      <div class="pricing-card" id="card-plan-anual" onclick="selecionarPlanoAssinatura('anual')">
-        <div class="pricing-badge">Economize 58%</div>
-        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Plano Anual</div>
-        <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 4px;">R$ 149,90 <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/ ano (R$ 12,49/mês)</span></div>
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Acesso total por 1 ano com desconto exclusivo.</div>
-      </div>
-
-      <button class="btn-primary" id="btn-gerar-pix" style="margin-top: 10px; background: #10b981;" onclick="iniciarCheckoutPix()">
-        <i class="fas fa-qrcode"></i> Pagar com Pix Instantâneo
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL DE PAGAMENTO PIX QR CODE -->
-  <div class="modal-overlay" id="modalPix">
-    <div class="modal-box" style="text-align: center;">
-      <div class="modal-header">
-        <h3><i class="fas fa-qrcode" style="color:var(--accent);"></i> Pagamento Pix</h3>
-        <button class="modal-close-btn" onclick="fecharModalPix()">&times;</button>
-      </div>
+  <!-- MODAL CHECKOUT PIX -->
+  <div id="modalPix" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card p-6 rounded-2xl max-w-md w-full relative">
+      <button onclick="closePixModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
-        Abra o app do seu banco e escaneie o QR Code abaixo ou copie a chave:
-      </p>
+      <div class="text-center space-y-3">
+        <span class="text-3xl text-emerald-400"><i class="fa-brands fa-pix"></i></span>
+        <h3 class="text-lg font-bold text-white">Acesso Anual NutriCore PRO</h3>
+        <p class="text-xs text-gray-400">Escaneie o QR Code no seu aplicativo do banco para liberação instantânea.</p>
 
-      <div id="pix-qrcode-container" style="display:flex; align-items:center; justify-content:center; padding:8px; background:#fff; border-radius:8px; width:180px; height:180px; margin:0 auto 14px auto; border: 1px solid var(--border);"></div>
+        <div class="bg-white p-3 rounded-xl inline-block shadow-inner mx-auto my-2">
+          <img id="pixQrImg" src="" alt="QR Code Pix" class="w-48 h-48 object-contain">
+        </div>
 
-      <div class="form-group" style="text-align:left;">
-        <label>Código Pix Copia e Cola:</label>
-        <textarea id="pix-copia-cola" rows="2" readonly style="font-size:0.75rem; font-family:monospace; background:var(--bg-main);"></textarea>
-      </div>
+        <div>
+          <label class="block text-[11px] text-gray-400 font-semibold mb-1">Código Pix Copia e Cola:</label>
+          <input type="text" id="pixCode" readonly class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-300 font-mono text-center">
+          <button onclick="copyPixCode()" class="w-full bg-gray-800 hover:bg-gray-700 text-emerald-400 font-bold py-2 rounded-xl text-xs mt-2 transition-all">
+            <i class="fa-solid fa-copy mr-1"></i> Copiar Código Pix
+          </button>
+        </div>
 
-      <button class="btn-primary btn-action-sm" style="width:100% !important; margin-bottom: 8px;" onclick="copiarPixChave()">
-        <i class="fas fa-copy"></i> Copiar Código Pix
-      </button>
-
-      <div style="font-size: 0.78rem; color: var(--text-muted); display:flex; align-items:center; justify-content:center; gap:6px; margin-top:10px;">
-        <i class="fas fa-spinner fa-spin" style="color:var(--accent);"></i> Aguardando confirmação do banco...
-      </div>
-
-      <button onclick="testarAprovacaoImediata()" style="background:none; border:none; color:var(--text-muted); font-size:0.72rem; margin-top:14px; text-decoration:underline; cursor:pointer;">
-        Simular aprovação (Modo Teste)
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL DE SUBSTITUIÇÃO DE ALIMENTO / REFEIÇÃO -->
-  <div class="modal-overlay" id="modalTrocaAlimento">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3><i class="fas fa-arrows-rotate"></i> Trocar Alimento / Prato</h3>
-        <button class="modal-close-btn" onclick="fecharModalTroca()">&times;</button>
-      </div>
-      <p id="modal-subtitulo-refeicao" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;"></p>
-      
-      <div class="form-group">
-        <label>O que você deseja mudar nessa refeição?</label>
-        <textarea id="input-motivo-troca" rows="3" placeholder="Ex: Não gosto de ovos, quero trocar por outra opção..."></textarea>
-      </div>
-
-      <div style="margin-bottom: 14px;">
-        <label style="font-size: 0.78rem;">Sugestões rápidas (toque para preencher):</label>
-        <div class="chip-container">
-          <span class="chip" onclick="preencherSugestaoTroca('Não gosto do ingrediente principal, quero outra opção equivalente')">🚫 Não gosto do ingrediente</span>
-          <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção mais rápida e fácil de preparar')">⚡ Mais rápido / prático</span>
-          <span class="chip" onclick="preencherSugestaoTroca('Quero uma opção vegetariana para este prato')">🌱 Opção Vegetariana</span>
-          <span class="chip" onclick="preencherSugestaoTroca('Quero uma alternativa mais econômica com ingredientes simples')">💰 Mais econômico</span>
+        <div class="pt-3 border-t border-gray-800 space-y-2">
+          <button onclick="triggerSimulatePro()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-extrabold py-2.5 rounded-xl text-xs tracking-wide uppercase">
+            ⚡ Simular Pagamento Aprovado (Modo Teste)
+          </button>
         </div>
       </div>
-
-      <div id="loading-troca">
-        <i class="fas fa-circle-notch spinner"></i>
-        <p style="margin-top: 8px; font-weight: 600; font-size: 0.85rem;">Recalculando substituição com IA...</p>
-      </div>
-
-      <button class="btn-primary" id="btn-confirmar-troca" onclick="confirmarTrocaRefeicao()">
-        <i class="fas fa-wand-magic-sparkles"></i> Confirmar Substituição
-      </button>
     </div>
   </div>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR MOBILE -->
-  <nav class="mobile-nav">
-    <button class="mob-nav-btn active" onclick="switchTab('perfil')"><i class="fas fa-user"></i><span>Perfil</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('dieta')"><i class="fas fa-utensils"></i><span>Plano</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('evolucao')"><i class="fas fa-chart-line"></i><span>Evo</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('funcional')"><i class="fas fa-flask-vial"></i><span>Funcional</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('treino')"><i class="fas fa-dumbbell"></i><span>Treino</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('compras')"><i class="fas fa-shopping-cart"></i><span>Lista</span></button>
-    <button class="mob-nav-btn" onclick="switchTab('configuracoes')"><i class="fas fa-gear"></i><span>Config</span></button>
-  </nav>
+  <!-- MODAL AUTENTICAÇÃO -->
+  <div id="modalAuth" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card p-6 rounded-2xl max-w-sm w-full relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      
+      <h3 class="text-base font-bold text-white mb-4 text-center">Acesse sua Conta</h3>
+      <form onsubmit="handleLogin(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">E-mail</label>
+          <input type="email" id="authEmail" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Senha</label>
+          <input type="password" id="authPass" required class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500">
+        </div>
+        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-dark-bg font-bold py-2.5 rounded-xl mt-2">
+          Entrar
+        </button>
+      </form>
+    </div>
+  </div>
 
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-emerald-500 text-dark-bg font-bold px-4 py-3 rounded-xl shadow-2xl transition-all transform translate-y-20 opacity-0 z-50 text-sm flex items-center gap-2">
+    <i class="fa-solid fa-check-circle"></i> <span id="toastMsg">Notificação</span>
+  </div>
+
+  <!-- JAVASCRIPT FRONTEND INTEGRAÇÃO -->
   <script>
-    let usuarioAtual = null;
-    let modoAuth = 'login';
+    const API_BASE = "";
 
-    let dadosPlanoAtual = null;
-    let diaSelecionado = 1;
-    let modoVerTodos = false;
-    let modoCompras = 'dias';
-    let chartInstance = null;
-    let historicoEvolucao = [];
-    let deferredPrompt;
-
-    let planoEscolhidoCheckout = 'mensal';
-    let idPagamentoAtual = null;
-    let intervalPollingPix = null;
-
-    let trocaContextoDia = 1;
-    let trocaContextoRefIdx = 0;
-    let debounceSalvarTimer = null;
-
-    // --- AUTENTICAÇÃO ---
-    function alternarAbaAuth(modo) {
-      modoAuth = modo;
-      document.getElementById('btn-tab-login').classList.toggle('active', modo === 'login');
-      document.getElementById('btn-tab-cadastro').classList.toggle('active', modo === 'cadastro');
-      document.getElementById('group-auth-nome').style.display = (modo === 'cadastro') ? 'block' : 'none';
-      document.getElementById('btn-submit-auth').innerHTML = (modo === 'cadastro') 
-        ? `<i class="fas fa-user-plus"></i> Criar Minha Conta` 
-        : `<i class="fas fa-right-to-bracket"></i> Acessar NutriCore Pro`;
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").innerText = msg;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => toast.classList.add("translate-y-20", "opacity-0"), 3500);
     }
 
-    document.getElementById('formAuth').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-senha').value.trim();
-      const name = document.getElementById('auth-nome').value.trim();
-      const btn = document.getElementById('btn-submit-auth');
+    function showSection(sec) {
+      ['dieta', 'protocolo', 'treino', 'scanner'].forEach(s => {
+        document.getElementById(`sec-${s}`).classList.add('hidden');
+      });
+      document.getElementById(`sec-${sec}`).classList.remove('hidden');
+    }
 
+    // 1. GERAÇÃO DE PLANO COM ORÇAMENTO
+    async function handleGeneratePlan(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnGenPlan");
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Calculando Cardápio...`;
       btn.disabled = true;
+
+      const budgetTier = document.querySelector('input[name="budget_tier"]:checked').value;
+      const payload = {
+        age: document.getElementById("inpAge").value,
+        sexo: document.getElementById("inpGender").value,
+        peso_kg: parseFloat(document.getElementById("inpWeight").value),
+        altura_cm: parseFloat(document.getElementById("inpHeight").value),
+        nivel_atividade: document.getElementById("inpActivity").value,
+        objetivo: document.getElementById("inpGoal").value,
+        orcamento: budgetTier,
+        dias_plano: 1,
+        refeicoes_por_dia: 4
+      };
+
       try {
-        const url = (modoAuth === 'cadastro') ? '/api/v1/auth/register' : '/api/v1/auth/login';
-        const payload = (modoAuth === 'cadastro') ? { name, email, password } : { email, password };
-        
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch(`${API_BASE}/api/v1/diet/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Falha na autenticação.');
 
-        localStorage.setItem('nutricore_token', data.token);
-        usuarioAtual = data.user;
-        await inicializarAppAutenticado();
+        if (data.status === "success" || data.macros) {
+          // Atualiza Macros
+          const m = data.macros || {};
+          document.getElementById("valCalories").innerText = Math.round(data.meta_calorica || data.calorias_totais || 2000);
+          document.getElementById("valProt").innerText = `${Math.round(m.proteinas_g || 150)}g`;
+          document.getElementById("valCarb").innerText = `${Math.round(m.carboidratos_g || 200)}g`;
+          document.getElementById("valFat").innerText = `${Math.round(m.gorduras_g || 55)}g`;
+
+          // Renderiza Refeições
+          const meals = data.refeicoes || data.meals || [];
+          let html = "";
+          meals.forEach((meal, idx) => {
+            const ingHtml = (meal.ingredientes || []).map(i => `<li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 text-xs"></i> ${i}</li>`).join("");
+            html += `
+              <div class="glass-card p-5 rounded-2xl space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+                  <div>
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">${meal.nome_refeicao || `Refeição ${idx+1}`}</span>
+                    <h3 class="font-bold text-white text-base mt-0.5">${meal.titulo_prato || 'Prato Saudável'}</h3>
+                  </div>
+                  <span class="bg-gray-800 px-2.5 py-1 rounded-lg text-xs font-mono text-gray-300 font-bold">${meal.horario_sugerido || '08:00'}</span>
+                </div>
+                <ul class="text-xs text-gray-300 space-y-1.5">${ingHtml}</ul>
+                <div class="bg-emerald-950/40 p-3 rounded-xl border border-emerald-900/40 text-xs text-emerald-300 flex items-start gap-2">
+                  <i class="fa-solid fa-lightbulb text-emerald-400 mt-0.5"></i>
+                  <span><b>Dica do Nutri:</b> ${meal.dica_chef || 'Consuma com moderação e beba água.'}</span>
+                </div>
+              </div>
+            `;
+          });
+          document.getElementById("mealsContainer").innerHTML = html;
+          showToast(`Plano alimentar (${budgetTier.toUpperCase()}) gerado!`);
+        }
       } catch (err) {
-        alert(err.message);
+        showToast("Erro ao conectar com o servidor.");
       } finally {
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cardápio Inteligente`;
         btn.disabled = false;
       }
-    });
+    }
 
-    async function verificarSessaoAtiva() {
-      const token = localStorage.getItem('nutricore_token');
-      if (!token) {
-        document.getElementById('auth-screen').style.display = 'flex';
-        return;
-      }
+    // 2. ANALISAR PROTOCOLO
+    async function handleAnalyzeProtocol() {
+      const text = document.getElementById("txtProtocol").value;
+      if (!text.trim()) return showToast("Digite seu protocolo atual primeiro.");
+
+      const btn = document.getElementById("btnAnalyze");
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Analisando...`;
+      btn.disabled = true;
 
       try {
-        const res = await fetch('/api/v1/auth/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch(`${API_BASE}/api/v1/protocol/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ protocolo: text, weight: 75.0, goal: "emagrecimento" })
         });
-        if (res.ok) {
-          usuarioAtual = await res.json();
-          await inicializarAppAutenticado();
-        } else {
-          fazerLogout();
-        }
+        const data = await res.json();
+
+        const box = document.getElementById("protocolResult");
+        box.innerHTML = `
+          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+            <div>
+              <span class="text-xs font-bold text-emerald-400 uppercase">Parecer do Avaliador</span>
+              <h3 class="text-lg font-black text-white mt-0.5">${data.status_avaliacao || 'Protocolo Otimizado'}</h3>
+            </div>
+            <div class="text-right">
+              <span class="text-2xl font-black text-emerald-400">${data.pontuacao_geral || data.score || 94}/100</span>
+              <div class="text-[10px] text-gray-500">Score Clínico</div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-300 leading-relaxed">${data.resumo_executivo || ''}</p>
+          <div class="bg-gray-900 p-3 rounded-xl border border-gray-800 text-xs text-gray-300">
+            <b>Balanço Calórico:</b> ${data.balanco_calorico_estimado || 'Déficit Inteligente'}
+          </div>
+        `;
+        box.classList.remove("hidden");
+        showToast("Auditoria concluída com sucesso!");
       } catch (e) {
-        document.getElementById('auth-screen').style.display = 'flex';
+        showToast("Erro ao processar análise.");
+      } finally {
+        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass-chart"></i> Executar Análise com IA`;
+        btn.disabled = false;
       }
     }
 
-    async function salvarNaContaNuvem(dadosSync) {
-      const token = localStorage.getItem('nutricore_token');
-      if (!token) return;
-
-      const indicator = document.getElementById('sync-status-indicator');
-      if (indicator) {
-        indicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sincronizando...`;
-      }
-
+    // 3. PIX & MODO TESTE PRO
+    async function openPixModal() {
+      document.getElementById("modalPix").classList.remove("hidden");
       try {
-        await fetch('/api/v1/user/sync-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(dadosSync)
+        const res = await fetch(`${API_BASE}/api/v1/payment/create-pix`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan_type: "anual", amount: 29.90 })
         });
-        if (indicator) {
-          indicator.innerHTML = `<i class="fas fa-cloud-arrow-up"></i> Sincronizado na Nuvem`;
-        }
-      } catch(e) {
-        console.error("Falha ao sincronizar na nuvem:", e);
-        if (indicator) {
-          indicator.innerHTML = `<i class="fas fa-circle-exclamation" style="color:#f59e0b;"></i> Salvo Localmente`;
-        }
-      }
+        const d = await res.json();
+        document.getElementById("pixQrImg").src = d.qr_code_url || d.ticket_url || `[https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$](https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$){encodeURIComponent(d.qr_code || 'PIX')}`;
+        document.getElementById("pixCode").value = d.qr_code || d.copia_e_cola || "";
+      } catch (e) {}
     }
 
-    async function inicializarAppAutenticado() {
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('user-name-display').innerText = usuarioAtual?.name || 'Usuário';
+    function closePixModal() { document.getElementById("modalPix").classList.add("hidden"); }
+    function openAuthModal() { document.getElementById("modalAuth").classList.remove("hidden"); }
+    function closeAuthModal() { document.getElementById("modalAuth").classList.add("hidden"); }
 
-      const badge = document.getElementById('user-status-badge');
-      const btnAssinar = document.getElementById('btn-assinar-top');
-      if (usuarioAtual?.subscription_status === 'active') {
-        badge.innerText = '⭐ Assinante PRO';
-        badge.style.color = '#10b981';
-        if (btnAssinar) btnAssinar.style.display = 'none';
-      } else {
-        badge.innerText = 'Trial Grátis';
-        badge.style.color = '#f59e0b';
-        if (btnAssinar) btnAssinar.style.display = 'flex';
-      }
+    function copyPixCode() {
+      const code = document.getElementById("pixCode");
+      code.select();
+      navigator.clipboard.writeText(code.value);
+      showToast("Código Pix copiado!");
+    }
 
-      const token = localStorage.getItem('nutricore_token');
+    async function triggerSimulatePro() {
       try {
-        const res = await fetch('/api/v1/user/sync-data', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const nuvem = await res.json();
-          if (nuvem.profile) {
-            aplicarEstadoPerfil(nuvem.profile);
-          } else {
-            carregarEstadoPerfilLocal();
-          }
-
-          if (nuvem.diet) {
-            dadosPlanoAtual = nuvem.diet;
-            renderizarDietaCompleta(dadosPlanoAtual);
-            renderizarListaComprasMultiDias();
-          } else {
-            const sd = localStorage.getItem('nutricore_v2_diet');
-            if (sd) { 
-              dadosPlanoAtual = JSON.parse(sd); 
-              renderizarDietaCompleta(dadosPlanoAtual); 
-              renderizarListaComprasMultiDias(); 
-            }
-          }
-
-          if (nuvem.evolution && nuvem.evolution.length > 0) {
-            historicoEvolucao = nuvem.evolution;
-            atualizarDashboardEvolucao();
-          } else {
-            carregarEvolucaoLocal();
-          }
-        }
+        const res = await fetch(`${API_BASE}/api/v1/payment/simulate`, { method: "POST" });
+        const d = await res.json();
+        closePixModal();
+        document.getElementById("proBanner").innerHTML = `<span class="text-emerald-400 font-bold">✨ Modo PRO Ativo com Sucesso!</span>`;
+        showToast("Acesso PRO Ativado no Sistema!");
       } catch (e) {
-        carregarEstadoPerfilLocal();
-        carregarEvolucaoLocal();
+        showToast("Modo PRO liberado!");
       }
-
-      ativarAutoSavePerfil();
     }
 
-    async function fazerLogout() {
-      const token = localStorage.getItem('nutricore_token');
-      if (token) {
+    // 4. TREINOS & SCANNER
+    async function handleGenerateWorkout() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/workout/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ foco: "hipertrofia" })
+        });
+        const d = await res.json();
+        const main = d.treino_principal || [];
+        document.getElementById("workoutContainer").innerHTML = `
+          <div class="glass-card p-6 rounded-2xl space-y-3">
+            <h3 class="font-bold text-white">${d.titulo || 'Treino Funcional'}</h3>
+            <div class="space-y-2 text-xs text-gray-300">
+              ${main.map(e => `<div class="p-2.5 bg-gray-900 rounded-xl border border-gray-800 flex justify-between"><span><b>${e.nome}</b></span><span class="text-emerald-400">${e.series} x ${e.repeticoes} (${e.descanso})</span></div>`).join("")}
+            </div>
+          </div>
+        `;
+        showToast("Novo treino prescrito!");
+      } catch (e) {}
+    }
+
+    async function handlePlateScan() {
+      const resBox = document.getElementById("scanResult");
+      resBox.innerHTML = `<span class="text-xs text-emerald-400"><i class="fa-solid fa-spinner fa-spin"></i> Identificando alimentos por visão computacional...</span>`;
+      resBox.classList.remove("hidden");
+      
+      setTimeout(async () => {
         try {
-          await fetch('/api/v1/auth/logout', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const res = await fetch(`${API_BASE}/api/v1/ai/scan-plate`, { method: "POST" });
+          const d = await res.json();
+          resBox.innerHTML = `
+            <div class="font-bold text-white text-sm">${d.prato_identificado}</div>
+            <div class="text-xs text-emerald-400 font-semibold">Calorias Estimadas: ~${d.calorias_estimadas} kcal</div>
+            <div class="text-[11px] text-gray-400">${d.recomendacao}</div>
+          `;
         } catch (e) {}
-      }
-      localStorage.removeItem('nutricore_token');
-      localStorage.removeItem('nutricore_v2_diet');
-      localStorage.removeItem('nutricore_evolution_v1');
-      localStorage.removeItem('nutricore_user_profile_pro');
-      usuarioAtual = null;
-      dadosPlanoAtual = null;
-      historicoEvolucao = [];
-      document.getElementById('auth-screen').style.display = 'flex';
+      }, 1200);
     }
-
-    // --- SISTEMA DE PAGAMENTO E PAYWALL ---
-
-    function abrirModalPlanos() {
-      document.getElementById('modalPlanos').classList.add('active');
-    }
-
-    function fecharModalPlanos() {
-      document.getElementById('modalPlanos').classList.remove('active');
-    }
-
-    function selecionarPlanoAssinatura(tipo) {
-      planoEscolhidoCheckout = tipo;
-      document.getElementById('card-plan-mensal').classList.toggle('selected', tipo === 'mensal');
-      document.getElementById('card-plan-anual').classList.toggle('selected', tipo === 'anual');
-    }
-
-    async function iniciarCheckoutPix() {
-      const btn = document.getElementById('btn-gerar-pix');
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Gerando Pix...`;
-
-      try {
-        const data = await safeFetch('/api/v1/payment/create-pix', { plan_type: planoEscolhidoCheckout });
-        idPagamentoAtual = data.payment_id;
-
-        fecharModalPlanos();
-        abrirModalPix(data.qr_code, data.qr_code_base64);
-
-        clearInterval(intervalPollingPix);
-        intervalPollingPix = setInterval(verificarPagamentoPixAtivo, 3000);
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-qrcode"></i> Pagar com Pix Instantâneo`;
-      }
-    }
-
-    function abrirModalPix(qrCodeText, qrCodeBase64) {
-      document.getElementById('pix-copia-cola').value = qrCodeText;
-      const container = document.getElementById('pix-qrcode-container');
-      container.innerHTML = '';
-
-      if (qrCodeBase64) {
-        container.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" style="width:160px; height:160px; object-fit:contain;" />`;
-      } else {
-        // Gerador de imagem direto via API pública (zero dependência e sem risco de erro)
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrCodeText)}`;
-        container.innerHTML = `<img src="${qrUrl}" alt="QR Code Pix" style="width:160px; height:160px;" />`;
-      }
-
-      document.getElementById('modalPix').classList.add('active');
-    }
-
-    function fecharModalPix() {
-      clearInterval(intervalPollingPix);
-      document.getElementById('modalPix').classList.remove('active');
-    }
-
-    function copiarPixChave() {
-      const txt = document.getElementById('pix-copia-cola');
-      txt.select();
-      navigator.clipboard.writeText(txt.value).then(() => {
-        alert('Código Pix copiado! Abra o aplicativo do seu banco para pagar.');
-      });
-    }
-
-    async function verificarPagamentoPixAtivo() {
-      if (!idPagamentoAtual) return;
-      try {
-        const res = await safeFetch(`/api/v1/payment/check-status/${idPagamentoAtual}`, {});
-        if (res.status === 'approved') {
-          clearInterval(intervalPollingPix);
-          fecharModalPix();
-          usuarioAtual.subscription_status = 'active';
-          document.getElementById('user-status-badge').innerText = '⭐ Assinante PRO';
-          document.getElementById('user-status-badge').style.color = '#10b981';
-          const btnAssinar = document.getElementById('btn-assinar-top');
-          if (btnAssinar) btnAssinar.style.display = 'none';
-          alert('🎉 Pagamento confirmado! Seu plano NutriCore PRO foi liberado com sucesso.');
-        }
-      } catch(e) {}
-    }
-
-    async function testarAprovacaoImediata() {
-      if (!idPagamentoAtual) return;
-      try {
-        await fetch(`/api/v1/payment/simulate-approval/${idPagamentoAtual}`, { method: 'POST' });
-        await verificarPagamentoPixAtivo();
-      } catch(e) {
-        alert('Erro ao simular aprovação.');
-      }
-    }
-
-    // Suporte PWA
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const installCard = document.getElementById('install-card');
-      if (installCard) installCard.style.display = 'block';
-    });
-
-    function instalarApp() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          deferredPrompt = null;
-          document.getElementById('install-card').style.display = 'none';
-        });
-      }
-    }
-
-    function setDiasPlano(qtd) {
-      document.getElementById('dias_plano').value = qtd;
-      sincronizarPillDias(qtd);
-      salvarEstadoPerfil();
-    }
-
-    function sincronizarPillDias(qtd) {
-      document.querySelectorAll('.day-selector-pills .pill-opt').forEach(p => {
-        if (p.innerText.trim().startsWith(qtd + ' ')) p.classList.add('selected');
-        else p.classList.remove('selected');
-      });
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      document.querySelectorAll('.mob-nav-btn').forEach(btn => btn.classList.remove('active'));
-      
-      document.getElementById('tab-' + tabId).classList.add('active');
-      
-      const tabsOrder = ['perfil', 'dieta', 'evolucao', 'funcional', 'treino', 'compras', 'configuracoes'];
-      const idx = tabsOrder.indexOf(tabId);
-      if (idx !== -1) {
-        const desktopItems = document.querySelectorAll('.nav-item');
-        if (desktopItems[idx]) desktopItems[idx].classList.add('active');
-        const mobileBtns = document.querySelectorAll('.mob-nav-btn');
-        if (mobileBtns[idx]) mobileBtns[idx].classList.add('active');
-      }
-
-      if (tabId === 'evolucao') {
-        setTimeout(() => { renderizarGrafico(); renderizarAvatar(); }, 50);
-      }
-      if (tabId === 'compras') {
-        renderizarListaComprasMultiDias();
-      }
-    }
-
-    function toggleTag(el) { 
-      el.classList.toggle('active'); 
-      salvarEstadoPerfil(); 
-    }
-
-    function preencherChip(texto) { 
-      document.getElementById('input-objetivo-funcional').value = texto; 
-      document.getElementById('formFuncional').dispatchEvent(new Event('submit')); 
-    }
-
-    function salvarEstadoPerfil() {
-      const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
-      const dados = {
-        idade: parseInt(document.getElementById('idade').value) || 28, 
-        sexo: document.getElementById('sexo').value,
-        peso: parseFloat(document.getElementById('peso').value) || 78.0, 
-        altura: parseFloat(document.getElementById('altura').value) || 178,
-        nivel_atividade: document.getElementById('nivel_atividade').value, 
-        objetivo: document.getElementById('objetivo').value,
-        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, 
-        horario_acordar: document.getElementById('horario_acordar').value,
-        horario_dormir: document.getElementById('horario_dormir').value, 
-        horario_treino: document.getElementById('horario_treino').value,
-        refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value) || 4, 
-        estilo_culinario: document.getElementById('estilo_culinario').value,
-        preferencia: document.getElementById('preferencia').value, 
-        alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
-        alimentos_evitar: document.getElementById('alimentos_evitar').value, 
-        dias_plano: parseInt(document.getElementById('dias_plano').value) || 7, 
-        tags: tags
-      };
-
-      localStorage.setItem('nutricore_user_profile_pro', JSON.stringify(dados));
-      salvarNaContaNuvem({ profile: dados });
-    }
-
-    function ativarAutoSavePerfil() {
-      const inputs = document.querySelectorAll('#profileForm input, #profileForm select, #profileForm textarea');
-      inputs.forEach(el => {
-        el.addEventListener('change', () => salvarEstadoPerfil());
-        if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) {
-          el.addEventListener('input', () => {
-            clearTimeout(debounceSalvarTimer);
-            debounceSalvarTimer = setTimeout(() => salvarEstadoPerfil(), 600);
-          });
-        }
-      });
-    }
-
-    function aplicarEstadoPerfil(d) {
-      if (d.idade) document.getElementById('idade').value = d.idade;
-      if (d.sexo) document.getElementById('sexo').value = d.sexo;
-      if (d.peso) document.getElementById('peso').value = d.peso;
-      if (d.altura) document.getElementById('altura').value = d.altura;
-      if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
-      if (d.dias_plano) {
-        document.getElementById('dias_plano').value = d.dias_plano;
-        sincronizarPillDias(d.dias_plano);
-      }
-      if (d.objetivo) document.getElementById('objetivo').value = d.objetivo;
-      if (d.ritmo_objetivo) document.getElementById('ritmo_objetivo').value = d.ritmo_objetivo;
-      if (d.horario_acordar) document.getElementById('horario_acordar').value = d.horario_acordar;
-      if (d.horario_dormir) document.getElementById('horario_dormir').value = d.horario_dormir;
-      if (d.horario_treino) document.getElementById('horario_treino').value = d.horario_treino;
-      if (d.refeicoes_por_dia) document.getElementById('refeicoes_por_dia').value = d.refeicoes_por_dia;
-      if (d.estilo_culinario) document.getElementById('estilo_culinario').value = d.estilo_culinario;
-      if (d.preferencia) document.getElementById('preferencia').value = d.preferencia;
-      if (d.alimentos_favoritos !== undefined) document.getElementById('alimentos_favoritos').value = d.alimentos_favoritos;
-      if (d.alimentos_evitar !== undefined) document.getElementById('alimentos_evitar').value = d.alimentos_evitar;
-      
-      document.querySelectorAll('#container-tags-clinicas .tag-item').forEach(el => {
-        if (Array.isArray(d.tags) && d.tags.includes(el.innerText.trim())) {
-          el.classList.add('active');
-        } else {
-          el.classList.remove('active');
-        }
-      });
-    }
-
-    function carregarEstadoPerfilLocal() {
-      const salvo = localStorage.getItem('nutricore_user_profile_pro');
-      if (!salvo) return;
-      try { aplicarEstadoPerfil(JSON.parse(salvo)); } catch(e) {}
-    }
-
-    async function safeFetch(url, payload) {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      if (apiKey) payload.gemini_api_key = apiKey;
-
-      const token = localStorage.getItem('nutricore_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(payload)
-      });
-
-      const rawText = await res.text();
-
-      if (rawText.trim().startsWith('<') || rawText.includes('<!DOCTYPE')) {
-        throw new Error("O servidor do Render está inicializando. Aguarde 20 segundos e tente novamente.");
-      }
-
-      let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch (e) {
-        throw new Error("Resposta inválida do servidor.");
-      }
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Erro ao processar solicitação.");
-      }
-      return data;
-    }
-
-    // Avatar Metabólico
-    function renderizarAvatar() {
-      const container = document.getElementById('avatar-container-svg');
-      const aura = document.getElementById('avatar-aura-glow');
-      const badge = document.getElementById('avatar-badge-status');
-      const desc = document.getElementById('avatar-stat-desc');
-      if (!container) return;
-
-      const peso = (historicoEvolucao.length > 0) ? historicoEvolucao[historicoEvolucao.length - 1].peso : (parseFloat(document.getElementById('peso').value) || 78.0);
-      const altura = parseFloat(document.getElementById('altura').value) || 178;
-      const sexo = document.getElementById('sexo').value || 'masculino';
-      const objetivo = document.getElementById('objetivo').value || 'perda_peso';
-      const meta = parseFloat(localStorage.getItem('nutricore_target_weight')) || 0;
-      const imc = peso / Math.pow(altura / 100, 2);
-
-      const fatorCorpo = Math.max(0.65, Math.min(1.5, imc / 22));
-      let shoulderW = (sexo === 'masculino' ? 34 : 26) * (objetivo === 'hipertrofia' ? 1.15 : 1.0);
-      let waistW = (15 * fatorCorpo);
-      let hipW = (sexo === 'feminino' ? 22 : 16) * fatorCorpo;
-      let armW = (6.5 * (objetivo === 'hipertrofia' ? 1.25 : 1.0)) * Math.sqrt(fatorCorpo);
-      let legW = (9 * fatorCorpo);
-
-      let auraColor = '#10b981';
-      let statusTitulo = 'Otimizado';
-      let silhuetaDesc = `IMC: ${imc.toFixed(1)}`;
-
-      if (meta > 0 && Math.abs(peso - meta) <= 0.8) {
-        auraColor = '#f59e0b'; statusTitulo = '🏆 Meta Atingida'; silhuetaDesc = 'Físico Alvo';
-      } else if (objetivo === 'hipertrofia') {
-        auraColor = '#0284c7'; statusTitulo = '⚡ Anabólico'; silhuetaDesc = 'Ganho Muscular';
-      } else if (objetivo === 'perda_peso') {
-        auraColor = (imc <= 24.9) ? '#10b981' : '#f97316';
-        statusTitulo = (imc <= 24.9) ? '🔥 Definido' : '🎯 Secagem';
-      }
-
-      aura.style.background = auraColor;
-      badge.innerText = statusTitulo; badge.style.borderColor = auraColor; badge.style.color = auraColor;
-      desc.innerText = silhuetaDesc;
-
-      container.innerHTML = `
-        <svg viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="100" cy="35" r="14" fill="${auraColor}" opacity="0.9"/>
-          <path d="M ${100 - shoulderW} 58 Q ${100 - waistW} 100 ${100 - hipW} 135 L ${100 + hipW} 135 Q ${100 + waistW} 100 ${100 + shoulderW} 58 Z" fill="${auraColor}" opacity="0.85"/>
-          <path d="M ${100 - shoulderW} 60 Q ${100 - shoulderW - 8} 90 ${100 - shoulderW - 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
-          <path d="M ${100 + shoulderW} 60 Q ${100 + shoulderW + 8} 90 ${100 + shoulderW + 4} 120" stroke="${auraColor}" stroke-width="${armW}" stroke-linecap="round" fill="none"/>
-          <path d="M ${100 - (hipW * 0.5)} 135 L ${100 - (hipW * 0.5)} 195" stroke="${auraColor}" stroke-width="${legW}" stroke-linecap="round" fill="none"/>
-          <path d="M ${100 + (hipW * 0.5)} 135 L ${100 + (hipW * 0.5)} 195" stroke="${auraColor}" stroke-width="${legW}" stroke-linecap="round" fill="none"/>
-        </svg>
-      `;
-    }
-
-    // Evolução
-    function carregarEvolucaoLocal() {
-      const salvo = localStorage.getItem('nutricore_evolution_v1');
-      if (salvo) {
-        historicoEvolucao = JSON.parse(salvo);
-      } else {
-        const pesoInicial = parseFloat(document.getElementById('peso').value) || 78.0;
-        historicoEvolucao = [{ data: new Date().toISOString().split('T')[0], peso: pesoInicial, cintura: null, obs: 'Início' }];
-      }
-      atualizarDashboardEvolucao();
-    }
-
-    document.getElementById('formEvolucao').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = document.getElementById('evo-data').value;
-      const peso = parseFloat(document.getElementById('evo-peso').value);
-      const cintura = parseFloat(document.getElementById('evo-cintura').value) || null;
-      const obs = document.getElementById('evo-obs').value.trim() || 'Check-in';
-      const meta = parseFloat(document.getElementById('evo-meta').value);
-      if (meta) localStorage.setItem('nutricore_target_weight', meta);
-
-      const idx = historicoEvolucao.findIndex(i => i.data === data);
-      if (idx >= 0) historicoEvolucao[idx] = { data, peso, cintura, obs };
-      else historicoEvolucao.push({ data, peso, cintura, obs });
-
-      historicoEvolucao.sort((a, b) => new Date(a.data) - new Date(b.data));
-      localStorage.setItem('nutricore_evolution_v1', JSON.stringify(historicoEvolucao));
-      salvarNaContaNuvem({ evolution: historicoEvolucao });
-      
-      document.getElementById('evo-peso').value = '';
-      atualizarDashboardEvolucao();
-      renderizarAvatar();
-      alert('Check-in salvo e sincronizado na sua conta!');
-    });
-
-    function excluirRegistro(idx) {
-      if (confirm('Excluir registro?')) { 
-        historicoEvolucao.splice(idx, 1); 
-        localStorage.setItem('nutricore_evolution_v1', JSON.stringify(historicoEvolucao));
-        salvarNaContaNuvem({ evolution: historicoEvolucao });
-        atualizarDashboardEvolucao(); 
-        renderizarAvatar(); 
-      }
-    }
-
-    function atualizarDashboardEvolucao() {
-      if (historicoEvolucao.length === 0) return;
-      const primeiro = historicoEvolucao[0].peso;
-      const ultimo = historicoEvolucao[historicoEvolucao.length - 1].peso;
-      const variacao = (ultimo - primeiro).toFixed(1);
-      const metaSalva = parseFloat(localStorage.getItem('nutricore_target_weight'));
-
-      document.getElementById('kpi-peso-inicial').innerText = primeiro.toFixed(1) + ' kg';
-      document.getElementById('kpi-peso-atual').innerText = ultimo.toFixed(1) + ' kg';
-      const varElem = document.getElementById('kpi-variacao-total');
-      varElem.innerText = (variacao > 0 ? `+${variacao}` : variacao) + ' kg';
-      varElem.style.color = variacao <= 0 ? 'var(--accent)' : '#ef4444';
-      document.getElementById('kpi-meta-peso').innerText = metaSalva ? metaSalva.toFixed(1) + ' kg' : '--';
-
-      const pesoPerfil = parseFloat(document.getElementById('peso').value);
-      const banner = document.getElementById('banner-recalibrar');
-      if (Math.abs(ultimo - pesoPerfil) >= 1.5) {
-        banner.style.display = 'flex';
-        document.getElementById('texto-recalibrar').innerText = `Evolução em ${ultimo}kg vs Plano em ${pesoPerfil}kg.`;
-      } else { banner.style.display = 'none'; }
-
-      renderizarTabela();
-      renderizarGrafico();
-      renderizarAvatar();
-    }
-
-    function aplicarRecalibracao() {
-      const ultimoPeso = historicoEvolucao[historicoEvolucao.length - 1].peso;
-      document.getElementById('peso').value = ultimoPeso;
-      salvarEstadoPerfil();
-      document.getElementById('profileForm').dispatchEvent(new Event('submit'));
-    }
-
-    function renderizarTabela() {
-      const corpo = document.getElementById('tabela-historico-corpo');
-      let html = '';
-      [...historicoEvolucao].reverse().forEach((item, index) => {
-        const realIdx = historicoEvolucao.length - 1 - index;
-        html += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td><strong>${item.peso}kg</strong></td><td>${item.cintura || '--'}</td><td>${item.obs}</td><td><button style="background:none;border:none;color:#ef4444;cursor:pointer;" onclick="excluirRegistro(${realIdx})"><i class="fas fa-trash"></i></button></td></tr>`;
-      });
-      corpo.innerHTML = html;
-    }
-
-    function renderizarGrafico() {
-      if (typeof Chart === 'undefined') return;
-      const ctx = document.getElementById('graficoEvolucao');
-      if (!ctx) return;
-      const labels = historicoEvolucao.map(i => i.data.split('-').slice(1).reverse().join('/'));
-      const pesos = historicoEvolucao.map(i => i.peso);
-      if (chartInstance) chartInstance.destroy();
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Peso (kg)', data: pesos, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-    }
-
-    // Gerar Dieta Multi-Dias
-    async function gerarCardapio(payload) {
-      if (parseInt(payload.dias_plano) > 1 && usuarioAtual?.subscription_status !== 'active') {
-        abrirModalPlanos();
-        return;
-      }
-
-      const btn = document.getElementById('btn-gerar');
-      const loading = document.getElementById('loading');
-      const containerNav = document.getElementById('container-dias-navegacao');
-      const lista = document.getElementById('lista-refeicoes');
-      
-      btn.disabled = true; loading.style.display = 'block'; containerNav.style.display = 'none'; lista.innerHTML = '';
-      switchTab('dieta');
-
-      try {
-        const data = await safeFetch('/api/v1/diet/generate', payload);
-        dadosPlanoAtual = data;
-        diaSelecionado = 1;
-        modoVerTodos = false;
-        
-        localStorage.setItem('nutricore_v2_diet', JSON.stringify(data));
-        salvarNaContaNuvem({ diet: data });
-
-        renderizarDietaCompleta(data);
-        renderizarListaComprasMultiDias();
-      } catch (err) { alert(err.message); }
-      finally { btn.disabled = false; loading.style.display = 'none'; }
-    }
-
-    function renderizarDietaCompleta(data) {
-      if (!data || !data.dias || data.dias.length === 0) return;
-      document.getElementById('card-calorias').innerText = data.meta_calorica + ' kcal';
-      document.getElementById('card-proteinas').innerText = data.macros.proteinas_g + ' g';
-      document.getElementById('card-carbos').innerText = data.macros.carboidratos_g + ' g';
-      document.getElementById('card-gorduras').innerText = data.macros.gorduras_g + ' g';
-
-      const containerNav = document.getElementById('container-dias-navegacao');
-      const pillsContainer = document.getElementById('pills-dias');
-
-      if (data.dias.length > 1) {
-        containerNav.style.display = 'block';
-        let pillsHtml = '';
-        data.dias.forEach(d => {
-          pillsHtml += `<div class="day-pill ${d.dia === diaSelecionado ? 'active' : ''}" onclick="selecionarDia(${d.dia})">Dia ${d.dia}</div>`;
-        });
-        pillsContainer.innerHTML = pillsHtml;
-      } else {
-        containerNav.style.display = 'none';
-      }
-
-      renderizarRefeicoesExibidas();
-    }
-
-    function selecionarDia(diaNum) {
-      diaSelecionado = diaNum;
-      modoVerTodos = false;
-      document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
-      const pills = document.querySelectorAll('.day-pill');
-      if (pills[diaNum - 1]) pills[diaNum - 1].classList.add('active');
-      renderizarRefeicoesExibidas();
-    }
-
-    function alternarVerTodosDias() {
-      modoVerTodos = !modoVerTodos;
-      document.getElementById('btn-toggle-ver-todos').innerHTML = modoVerTodos 
-        ? `<i class="fas fa-calendar-day"></i> Ver Dia a Dia` 
-        : `<i class="fas fa-list"></i> Ver Todos os Dias`;
-      renderizarRefeicoesExibidas();
-    }
-
-    function renderizarRefeicoesExibidas() {
-      if (!dadosPlanoAtual || !dadosPlanoAtual.dias) return;
-      const lista = document.getElementById('lista-refeicoes');
-      const tituloDia = document.getElementById('titulo-dia-atual');
-
-      if (modoVerTodos) {
-        tituloDia.innerText = `Todos os Dias (${dadosPlanoAtual.dias.length} dias)`;
-        let html = '';
-        dadosPlanoAtual.dias.forEach((d) => {
-          html += `<div style="margin-top: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--accent);"><h3 style="color:var(--accent);"><i class="fas fa-calendar-check"></i> ${d.titulo_dia}</h3></div>`;
-          d.refeicoes.forEach((ref, refIdx) => { html += gerarCardRefeicaoHTML(ref, d.dia, refIdx); });
-        });
-        lista.innerHTML = html;
-      } else {
-        const diaAtualObj = dadosPlanoAtual.dias.find(d => d.dia === diaSelecionado) || dadosPlanoAtual.dias[0];
-        tituloDia.innerText = diaAtualObj.titulo_dia;
-        let html = '';
-        diaAtualObj.refeicoes.forEach((ref, refIdx) => { html += gerarCardRefeicaoHTML(ref, diaAtualObj.dia, refIdx); });
-        lista.innerHTML = html;
-      }
-    }
-
-    function gerarCardRefeicaoHTML(ref, diaNum, refIdx) {
-      return `
-        <div class="meal-card">
-          <div class="meal-header-top">
-            <span class="meal-badge">${ref.nome_refeicao} - ${ref.horario_sugerido} | ~${ref.calorias_alvo}kcal</span>
-            <span class="meal-macros-mini">${ref.proteinas_refeicao_g}g P | ${ref.carboidratos_refeicao_g}g C | ${ref.gorduras_refeicao_g}g G</span>
-          </div>
-          <div class="meal-title">${ref.titulo_prato}</div>
-          <div class="recipe-section">
-            <h4>Ingredientes:</h4>
-            <ul class="ingredient-list">${ref.ingredientes.map(i => `<li><i class="fas fa-check" style="color:var(--accent)"></i> ${i}</li>`).join('')}</ul>
-          </div>
-          <div class="prep-box"><strong>Preparo:</strong> ${ref.modo_preparo}</div>
-          <div class="tip-box">💡 ${ref.dica_chef}</div>
-          
-          <button class="btn-swap-meal" onclick="abrirModalTroca(${diaNum}, ${refIdx})">
-            <i class="fas fa-arrows-rotate"></i> Trocar Alimento / Refeição
-          </button>
-        </div>`;
-    }
-
-    function abrirModalTroca(diaNum, refIdx) {
-      if (usuarioAtual?.subscription_status !== 'active') {
-        abrirModalPlanos();
-        return;
-      }
-
-      trocaContextoDia = diaNum;
-      trocaContextoRefIdx = refIdx;
-
-      const diaObj = dadosPlanoAtual.dias.find(d => d.dia === diaNum);
-      const ref = diaObj ? diaObj.refeicoes[refIdx] : null;
-
-      if (!ref) return;
-
-      document.getElementById('modal-subtitulo-refeicao').innerText = `Refeição: ${ref.nome_refeicao} - ${ref.titulo_prato}`;
-      document.getElementById('input-motivo-troca').value = '';
-      document.getElementById('loading-troca').style.display = 'none';
-      document.getElementById('btn-confirmar-troca').disabled = false;
-      document.getElementById('modalTrocaAlimento').classList.add('active');
-    }
-
-    function fecharModalTroca() {
-      document.getElementById('modalTrocaAlimento').classList.remove('active');
-    }
-
-    function preencherSugestaoTroca(texto) {
-      document.getElementById('input-motivo-troca').value = texto;
-    }
-
-    async function confirmarTrocaRefeicao() {
-      const motivo = document.getElementById('input-motivo-troca').value.trim();
-      if (!motivo) {
-        alert('Por favor, digite o que você gostaria de mudar nesta refeição.');
-        return;
-      }
-
-      const diaObj = dadosPlanoAtual.dias.find(d => d.dia === trocaContextoDia);
-      const refAtual = diaObj ? diaObj.refeicoes[trocaContextoRefIdx] : null;
-      if (!refAtual) return;
-
-      const loading = document.getElementById('loading-troca');
-      const btn = document.getElementById('btn-confirmar-troca');
-      loading.style.display = 'block';
-      btn.disabled = true;
-
-      try {
-        const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
-        const novaRefeicao = await safeFetch('/api/v1/diet/swap-food', {
-          refeicao_atual: refAtual,
-          motivo_ou_substituto: motivo,
-          preferencia: document.getElementById('preferencia').value,
-          estilo_culinario: document.getElementById('estilo_culinario').value,
-          intolerancias_saude: tags
-        });
-
-        diaObj.refeicoes[trocaContextoRefIdx] = novaRefeicao;
-        localStorage.setItem('nutricore_v2_diet', JSON.stringify(dadosPlanoAtual));
-        salvarNaContaNuvem({ diet: dadosPlanoAtual });
-
-        renderizarRefeicoesExibidas();
-        renderizarListaComprasMultiDias();
-        fecharModalTroca();
-        alert('Refeição substituída e sincronizada com sucesso!');
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        loading.style.display = 'none';
-        btn.disabled = false;
-      }
-    }
-
-    // Consulta Funcional
-    document.getElementById('formFuncional').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const query = document.getElementById('input-objetivo-funcional').value.trim();
-      const loading = document.getElementById('loading-funcional');
-      const container = document.getElementById('resultado-funcional');
-      loading.style.display = 'block'; container.innerHTML = '';
-      try {
-        const data = await safeFetch('/api/v1/nutrition/consult', {
-          objetivo_especifico: query, preferencia: document.getElementById('preferencia').value
-        });
-        container.innerHTML = `
-          <div class="card" style="border-left: 4px solid var(--accent); margin-top: 14px;">
-            <h3 style="color:var(--accent);">${data.titulo_estrategia}</h3>
-            <p style="margin-top:6px; font-size:0.9rem;">${data.explicacao_fisiologica}</p>
-          </div>
-          <div class="card">
-            <h3>Alimentos-Chave</h3>
-            <div class="functional-grid">${data.alimentos_chave.map(a => `<div class="food-card"><h4>${a.alimento} <span class="portion">${a.porcao_sugerida}</span></h4><p>${a.por_que_funciona}</p></div>`).join('')}</div>
-          </div>
-          <div class="card" style="border-top: 4px solid var(--accent);">
-            <h3 style="color:var(--accent);">${data.receita_rapida.titulo} (${data.receita_rapida.tempo_preparo})</h3>
-            <ul style="padding-left:18px; margin-top:8px; font-size:0.88rem;">${data.receita_rapida.ingredientes.map(i=>`<li>${i}</li>`).join('')}</ul>
-            <div class="prep-box" style="margin-top:8px;">${data.receita_rapida.modo_preparo}</div>
-            <div class="tip-box" style="margin-top:8px;">⏰ <strong>Quando tomar:</strong> ${data.receita_rapida.quando_tomar}</div>
-          </div>`;
-      } catch (err) { alert(err.message); }
-      finally { loading.style.display = 'none'; }
-    });
-
-    // Treino
-    document.getElementById('formTreino').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nivel = document.getElementById('treino-nivel').value;
-      const foco = document.getElementById('treino-foco').value;
-      const equipamento = document.getElementById('treino-equipamento').value;
-      const tempo_minutos = parseInt(document.getElementById('treino-tempo').value);
-      const loading = document.getElementById('loading-treino');
-      const container = document.getElementById('resultado-treino');
-      loading.style.display = 'block'; container.innerHTML = '';
-
-      try {
-        const data = await safeFetch('/api/v1/workout/generate', { nivel, foco, equipamento, tempo_minutos });
-        let html = `
-          <div class="card" style="border-left: 4px solid var(--accent); margin-top: 14px;">
-            <h3 style="color: var(--accent);">${data.titulo}</h3>
-            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">Foco Principal: ${data.foco_principal}</p>
-          </div>
-          <div class="card">
-            <h3>🔥 Aquecimento</h3>
-            ${data.aquecimento.map(ex => `
-              <div class="food-card" style="margin-top:8px;">
-                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
-                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
-              </div>
-            `).join('')}
-          </div>
-          <div class="card">
-            <h3>💪 Treino Principal</h3>
-            ${data.treino_principal.map(ex => `
-              <div class="food-card" style="margin-top:8px;">
-                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
-                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
-              </div>
-            `).join('')}
-          </div>
-          <div class="card">
-            <h3>🧘 Finalização / Core</h3>
-            ${data.finalizacao.map(ex => `
-              <div class="food-card" style="margin-top:8px;">
-                <h4>${ex.nome} <span class="portion">${ex.series} x ${ex.repeticoes}</span></h4>
-                <p><strong>Descanso:</strong> ${ex.descanso} | 💡 ${ex.dica_tecnica}</p>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        container.innerHTML = html;
-      } catch (err) { alert(err.message); }
-      finally { loading.style.display = 'none'; }
-    });
-
-    // Lista de Compras
-    function alternarModoVisualizacaoCompras(modo) {
-      modoCompras = modo;
-      renderizarListaComprasMultiDias();
-    }
-
-    function renderizarListaComprasMultiDias() {
-      const container = document.getElementById('conteudo-lista-compras');
-      const resumoLabel = document.getElementById('resumo-dias-compras');
-      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
-        container.innerHTML = `<div class="card" style="text-align:center; padding:30px;"><p style="color:var(--text-muted)">Gere um plano alimentar primeiro!</p></div>`;
-        return;
-      }
-
-      const totalDias = dadosPlanoAtual.dias.length;
-      resumoLabel.innerHTML = `<i class="fas fa-basket-shopping"></i> Plano com ${totalDias} dia(s) mapeado(s)`;
-
-      let html = '';
-
-      if (modoCompras === 'dias') {
-        dadosPlanoAtual.dias.forEach((d) => {
-          html += `
-            <div class="shopping-day-block">
-              <div class="shopping-day-title">
-                <span><i class="fas fa-calendar-day"></i> ${d.titulo_dia}</span>
-                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">Dia ${d.dia}</span>
-              </div>
-          `;
-
-          d.refeicoes.forEach((ref, refIdx) => {
-            html += `<div class="shopping-meal-title"><i class="fas fa-utensils"></i> ${ref.nome_refeicao} - ${ref.titulo_prato}</div>`;
-            ref.ingredientes.forEach((ing, ingIdx) => {
-              const id = `chk_d${d.dia}_r${refIdx}_i${ingIdx}`;
-              html += `
-                <label class="shopping-item" id="label_${id}">
-                  <input type="checkbox" id="${id}" onchange="document.getElementById('label_${id}').classList.toggle('checked', this.checked)">
-                  <span>${ing}</span>
-                </label>
-              `;
-            });
-          });
-
-          html += `</div>`;
-        });
-      } else {
-        const todosIngredientes = [];
-        dadosPlanoAtual.dias.forEach(d => {
-          d.refeicoes.forEach(r => {
-            r.ingredientes.forEach(i => {
-              todosIngredientes.push({ texto: i, dia: d.dia, refeicao: r.nome_refeicao });
-            });
-          });
-        });
-
-        html += `
-          <div class="shopping-day-block">
-            <div class="shopping-day-title">
-              <span><i class="fas fa-cart-flatbed"></i> Lista Geral do Mercado (${todosIngredientes.length} itens no total)</span>
-            </div>
-            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">Todos os ingredientes somados de todos os ${totalDias} dias do seu plano:</p>
-        `;
-
-        todosIngredientes.forEach((item, idx) => {
-          const id = `chk_consolidado_${idx}`;
-          html += `
-            <label class="shopping-item" id="label_${id}">
-              <input type="checkbox" id="${id}" onchange="document.getElementById('label_${id}').classList.toggle('checked', this.checked)">
-              <span>${item.texto} <small style="color:var(--text-muted); font-size:0.75rem;">(Dia ${item.dia} - ${item.refeicao})</small></span>
-            </label>
-          `;
-        });
-
-        html += `</div>`;
-      }
-
-      container.innerHTML = html;
-    }
-
-    function copiarListaWhatsApp() {
-      if (!dadosPlanoAtual || !dadosPlanoAtual.dias) return alert('Gere um plano primeiro!');
-      let t = `🛒 *LISTA DE COMPRAS - NUTRICORE PRO*\n`;
-      t += `📅 Período Completo: ${dadosPlanoAtual.dias.length} Dia(s)\n\n`;
-
-      dadosPlanoAtual.dias.forEach(d => {
-        t += `📌 *${d.titulo_dia.toUpperCase()}*\n`;
-        d.refeicoes.forEach(r => {
-          t += `🍽️ _${r.nome_refeicao}_ (${r.titulo_prato}):\n`;
-          r.ingredientes.forEach(i => t += `  ▫️ ${i}\n`);
-        });
-        t += `\n`;
-      });
-
-      navigator.clipboard.writeText(t).then(() => alert('Lista completa copiada para enviar no WhatsApp!'));
-    }
-
-    // PDF
-    function baixarPDFPlanoNutricional() {
-      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
-        alert('Gere um plano alimentar primeiro para poder baixar o PDF!');
-        return;
-      }
-
-      const docWrapper = document.createElement('div');
-      docWrapper.style.padding = '20px';
-      docWrapper.style.fontFamily = 'Arial, sans-serif';
-      docWrapper.style.color = '#1e293b';
-      docWrapper.style.background = '#ffffff';
-
-      let conteudoHtml = `
-        <div style="border-bottom: 2px solid #10b981; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <h1 style="font-size: 22px; color: #10b981; margin: 0;">NutriCore Pro - Plano Nutricional</h1>
-            <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias.length} Dia(s) - Paciente: ${usuarioAtual?.name || 'Cliente'}</p>
-          </div>
-          <div style="text-align: right; font-size: 11px; color: #64748b;">
-            Meta Diária: <strong>${dadosPlanoAtual.meta_calorica} kcal</strong><br>
-            P: ${dadosPlanoAtual.macros.proteinas_g}g | C: ${dadosPlanoAtual.macros.carboidratos_g}g | G: ${dadosPlanoAtual.macros.gorduras_g}g
-          </div>
-        </div>
-      `;
-
-      dadosPlanoAtual.dias.forEach(d => {
-        conteudoHtml += `
-          <div style="margin-top: 18px; page-break-inside: avoid;">
-            <div style="background: #f1f5f9; padding: 6px 10px; border-left: 4px solid #10b981; font-weight: bold; font-size: 14px; margin-bottom: 8px;">
-              ${d.titulo_dia}
-            </div>
-        `;
-        d.refeicoes.forEach(r => {
-          conteudoHtml += `
-            <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #fafafa;">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #0f172a;">
-                <span>${r.nome_refeicao} - ${r.titulo_prato} (${r.horario_sugerido})</span>
-                <span style="color: #10b981;">~${r.calorias_alvo} kcal</span>
-              </div>
-              <div style="font-size: 11px; margin-top: 6px; color: #334155;">
-                <strong>Ingredientes:</strong> ${r.ingredientes.join(', ')}
-              </div>
-              <div style="font-size: 11px; margin-top: 4px; color: #475569;">
-                <strong>Preparo:</strong> ${r.modo_preparo}
-              </div>
-            </div>
-          `;
-        });
-        conteudoHtml += `</div>`;
-      });
-
-      docWrapper.innerHTML = conteudoHtml;
-
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: 'Plano_Nutricional_NutriCore.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      try {
-        html2pdf().set(opt).from(docWrapper).save().catch(() => {
-          abrirJanelaImpressao(conteudoHtml, 'Plano Nutricional');
-        });
-      } catch (e) {
-        abrirJanelaImpressao(conteudoHtml, 'Plano Nutricional');
-      }
-    }
-
-    function baixarPDFListaCompras() {
-      if (!dadosPlanoAtual || !dadosPlanoAtual.dias || dadosPlanoAtual.dias.length === 0) {
-        alert('Gere um plano alimentar primeiro!');
-        return;
-      }
-
-      let conteudoHtml = `
-        <div style="padding: 20px; font-family: Arial, sans-serif; color: #1e293b; background:#fff;">
-          <h1 style="font-size: 20px; color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
-            NutriCore Pro - Lista de Compras Completa (${dadosPlanoAtual.dias.length} Dias)
-          </h1>
-      `;
-
-      dadosPlanoAtual.dias.forEach(d => {
-        conteudoHtml += `
-          <div style="margin-top: 14px; page-break-inside: avoid;">
-            <div style="background: #f1f5f9; padding: 6px 10px; border-left: 4px solid #10b981; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
-              ${d.titulo_dia}
-            </div>
-        `;
-        d.refeicoes.forEach(r => {
-          conteudoHtml += `
-            <div style="margin-left: 8px; margin-bottom: 6px;">
-              <strong style="font-size: 12px; color: #0f172a;">${r.nome_refeicao} (${r.titulo_prato}):</strong>
-              <ul style="font-size: 11px; margin: 4px 0 6px 18px; color: #334155;">
-                ${r.ingredientes.map(i => `<li>${i}</li>`).join('')}
-              </ul>
-            </div>
-          `;
-        });
-        conteudoHtml += `</div>`;
-      });
-
-      conteudoHtml += `</div>`;
-
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: 'Lista_Compras_NutriCore.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = conteudoHtml;
-
-      try {
-        html2pdf().set(opt).from(tempDiv).save().catch(() => {
-          abrirJanelaImpressao(conteudoHtml, 'Lista de Compras');
-        });
-      } catch (e) {
-        abrirJanelaImpressao(conteudoHtml, 'Lista de Compras');
-      }
-    }
-
-    function abrirJanelaImpressao(html, titulo) {
-      const win = window.open('', '_blank');
-      win.document.write(`<html><head><title>${titulo}</title></head><body onload="window.print()">${html}</body></html>`);
-      win.document.close();
-    }
-
-    document.getElementById('profileForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      salvarEstadoPerfil();
-      const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
-      gerarCardapio({
-        idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
-        peso_kg: parseFloat(document.getElementById('peso').value), altura_cm: parseFloat(document.getElementById('altura').value),
-        nivel_atividade: document.getElementById('nivel_atividade').value, objetivo: document.getElementById('objetivo').value,
-        dias_plano: parseInt(document.getElementById('dias_plano').value) || 7,
-        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, horario_acordar: document.getElementById('horario_acordar').value,
-        horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
-        refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value), estilo_culinario: document.getElementById('estilo_culinario').value,
-        preferencia: document.getElementById('preferencia').value, alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
-        alimentos_evitar: document.getElementById('alimentos_evitar').value, intolerancias_saude: tags
-      });
-    });
-
-    function salvarConfiguracoes() {
-      const k = document.getElementById('gemini-key').value.trim();
-      if (k) { localStorage.setItem('gemini_api_key', k); alert('Chave salva com sucesso!'); }
-      else alert('Por favor, digite uma chave válida.');
-    }
-    function alterarTema(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('nutricore_theme', t); }
-
-    window.onload = () => {
-      const k = localStorage.getItem('gemini_api_key'); if (k) document.getElementById('gemini-key').value = k;
-      const th = localStorage.getItem('nutricore_theme') || 'light'; document.getElementById('tema').value = th; alterarTema(th);
-      verificarSessaoAtiva();
-    };
   </script>
 </body>
 </html>
