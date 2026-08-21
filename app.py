@@ -5,15 +5,16 @@ import math
 import base64
 import hashlib
 import sqlite3
-import requests
+import urllib.parse
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
+import requests
 from fastapi import FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 # ==========================================
 # CONFIGURAÇÕES E VARIÁVEIS DE AMBIENTE
@@ -24,12 +25,11 @@ DB_PATH = BASE_DIR / "nutricore.db"
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "nutricore2026")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
-DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 app = FastAPI(
     title="NutriCore Pro - Enterprise Nutrition Engine",
     description="Backend completo para SaaS de Nutrição, IA, Leads e Pagamentos",
-    version="3.0.0"
+    version="3.0.1"
 )
 
 app.add_middleware(
@@ -41,7 +41,7 @@ app.add_middleware(
 )
 
 # ==========================================
-# INICIALIZAÇÃO DO BANCO DE DADOS
+# BANCO DE DADOS LOCAL (SQLITE)
 # ==========================================
 def get_db():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -52,7 +52,7 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
     
-    # 1. Usuários
+    # Usuários
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +66,7 @@ def init_db():
         )
     """)
     
-    # 2. Perfis Corporais e Histórico de Peso
+    # Perfis de Usuário
     c.execute("""
         CREATE TABLE IF NOT EXISTS user_profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +88,7 @@ def init_db():
         )
     """)
     
-    # 3. Leads do Quiz (Funil de Vendas)
+    # Leads do Quiz (Funil)
     c.execute("""
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,16 +107,14 @@ def init_db():
             daily_calories REAL,
             estimated_weeks INTEGER,
             quiz_data_json TEXT,
-            recovered_via_whatsapp INTEGER DEFAULT 0,
             created_at TEXT NOT NULL
         )
     """)
     
-    # 4. Planos Alimentares
+    # Planos Alimentares
     c.execute("""
         CREATE TABLE IF NOT EXISTS diet_plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
             user_email TEXT,
             title TEXT,
             calories REAL,
@@ -124,25 +122,11 @@ def init_db():
             meals_json TEXT,
             shopping_list_json TEXT,
             ai_tips TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            created_at TEXT NOT NULL
         )
     """)
     
-    # 5. Planos de Treino Complementares
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS workouts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            goal TEXT,
-            level TEXT,
-            workout_json TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    """)
-    
-    # 6. Cobranças e Pagamentos Pix
+    # Pagamentos Pix
     c.execute("""
         CREATE TABLE IF NOT EXISTS payments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,19 +149,19 @@ def init_db():
 init_db()
 
 # ==========================================
-# MODELOS PYDANTIC
+# SCHEMAS PYDANTIC (COMPATÍVEIS SEM DEPENDÊNCIAS EXTRAS)
 # ==========================================
 class UserRegisterInput(BaseModel):
-    name: str = Field(..., min_length=2)
-    email: EmailStr
-    password: str = Field(..., min_length=6)
+    name: str
+    email: str
+    password: str
 
 class UserLoginInput(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class ProfileUpdateInput(BaseModel):
-    user_email: EmailStr
+    user_email: str
     gender: str
     age: int
     weight: float
@@ -190,7 +174,7 @@ class ProfileUpdateInput(BaseModel):
 
 class LeadCaptureInput(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     phone: str
     gender: Optional[str] = "masculino"
     age: Optional[int] = 28
@@ -220,23 +204,22 @@ class ImageScanInput(BaseModel):
 class WorkoutGenerateInput(BaseModel):
     goal: str
     days_per_week: int = 4
-    location: str = "academia"  # academia | casa
+    location: str = "academia"
 
 class PixCreateInput(BaseModel):
-    email: EmailStr
+    email: str
     name: str
     amount: float = 29.90
     plan_type: Optional[str] = "pro_annual"
 
 # ==========================================
-# UTILITÁRIOS CIENTÍFICOS & AUXILIARES
+# CÁLCULOS NUTRICIONAIS
 # ==========================================
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 def calculate_metabolism(gender: str, weight: float, height: float, age: int, activity: str, goal: str):
-    # Fórmula de Mifflin-St Jeor
-    is_male = gender.lower() in ["homem", "male", "m", "masculino"]
+    is_male = str(gender).lower() in ["homem", "male", "m", "masculino"]
     if is_male:
         tmb = (10.0 * weight) + (6.25 * height) - (5.0 * age) + 5.0
     else:
@@ -249,10 +232,9 @@ def calculate_metabolism(gender: str, weight: float, height: float, age: int, ac
         "intenso": 1.725,
         "muito_intenso": 1.9
     }
-    tdee = tmb * factors.get(activity.lower(), 1.4)
+    tdee = tmb * factors.get(str(activity).lower(), 1.4)
 
-    # Ajuste por objetivo
-    goal_lower = goal.lower()
+    goal_lower = str(goal).lower()
     if any(k in goal_lower for k in ["perda", "emagrecer", "secar", "definir"]):
         target_calories = tdee - 500
     elif any(k in goal_lower for k in ["ganho", "hipertrofia", "massa"]):
@@ -262,72 +244,11 @@ def calculate_metabolism(gender: str, weight: float, height: float, age: int, ac
 
     return round(tmb, 1), round(tdee, 1), round(target_calories, 1)
 
-def generate_deterministic_plan(weight: float, calories: float, goal: str, diet_style: str):
-    # Distribuição de Macronutrientes
+def generate_fallback_plan(weight: float, calories: float, goal: str, diet_style: str):
     prot_g = round(weight * 2.0)
     fat_g = round((calories * 0.25) / 9.0)
     carb_g = round(max(50, (calories - (prot_g * 4 + fat_g * 9)) / 4.0))
-
     water_liters = round((weight * 35) / 1000.0, 1)
-
-    meals = [
-        {
-            "nome": "Café da Manhã Energético",
-            "horario": "07:30",
-            "calorias": round(calories * 0.25),
-            "alimentos": [
-                "3 Ovos inteiros mexidos com azeite de oliva",
-                "2 Fatias de pão 100% integral",
-                "1 Fruta média (Banana ou Maçã)",
-                "Café preto sem açúcar"
-            ],
-            "dica_preparo": "Consuma proteína logo na primeira refeição para estabilizar a glicemia."
-        },
-        {
-            "nome": "Almoço Anabólico & Equilibrado",
-            "horario": "12:30",
-            "calorias": round(calories * 0.35),
-            "alimentos": [
-                "150g de Peito de Frango ou Patinho grelhado",
-                "120g de Arroz Integral ou Mandioca",
-                "1 Concha de Feijão preto ou carioca (80g)",
-                "Prato fundo de folhas verdes (Rúcula, Alface) e Tomate",
-                "1 Fio de Azeite de Oliva Extra Virgem (5ml)"
-            ],
-            "dica_preparo": "Adicione limão espremido na salada para aumentar a absorção de ferro."
-        },
-        {
-            "nome": "Lanche da Tarde Pré-Treino",
-            "horario": "16:30",
-            "calorias": round(calories * 0.15),
-            "alimentos": [
-                "1 Pote de Iogurte Natural Desnatado (170g)",
-                "30g de Aveia em flocos finos",
-                "1 Colher de sopa de sementes de Chia",
-                "1 Porção de frutas vermelhas ou morangos"
-            ],
-            "dica_preparo": "Excelente combinação de carboidrato complexo e probióticos."
-        },
-        {
-            "nome": "Jantar Regenerativo",
-            "horario": "20:00",
-            "calorias": round(calories * 0.25),
-            "alimentos": [
-                "140g de Peixe (Tilápia/Salmão) ou Sobrecoxa sem pele",
-                "150g de Legumes ao vapor (Brócolis, Cenoura, Abobrinha)",
-                "100g de Batata Doce cozida",
-                "Chá de Camomila sem açúcar antes de dormir"
-            ],
-            "dica_preparo": "Evite excesso de sódio à noite para reduzir retenção hídrica."
-        }
-    ]
-
-    shopping_list = {
-        "Hortifrúti": ["Folhas verdes", "Tomates", "Brócolis", "Cenoura", "Bananas", "Morangos", "Limão"],
-        "Proteínas & Ovos": ["Ovos caipiras (2 dúzias)", "Peito de Frango (1kg)", "Patinho moído (500g)", "Filé de Peixe"],
-        "Mercearia & Grãos": ["Arroz integral", "Feijão", "Pão 100% integral", "Aveia em flocos", "Chia", "Azeite EV"],
-        "Laticínios": ["Iogurte natural desnatado"]
-    }
 
     return {
         "calorias_totais": calories,
@@ -337,33 +258,66 @@ def generate_deterministic_plan(weight: float, calories: float, goal: str, diet_
             "gordura_g": fat_g,
             "fibras_g": 30
         },
-        "meta_hidratacao": f"{water_liters} Litros de água/dia",
+        "meta_hidratacao": f"{water_liters} Litros/dia",
         "estilo_aplicado": diet_style,
-        "refeicoes": meals,
-        "lista_compras": shopping_list,
+        "refeicoes": [
+            {
+                "nome": "Café da Manhã",
+                "horario": "07:30",
+                "calorias": round(calories * 0.25),
+                "alimentos": ["3 Ovos mexidos", "2 Fatias de pão 100% integral", "1 Banana", "Café preto sem açúcar"],
+                "dica_preparo": "Consuma proteína logo pela manhã para manter a saciedade."
+            },
+            {
+                "nome": "Almoço Equilibrado",
+                "horario": "12:30",
+                "calorias": round(calories * 0.35),
+                "alimentos": ["150g de Peito de Frango grelhado", "120g de Arroz Integral", "80g de Feijão", "Salada verde à vontade", "1 Fio de azeite"],
+                "dica_preparo": "Adicione limão à salada para favorecer a digestão."
+            },
+            {
+                "nome": "Lanche da Tarde",
+                "horario": "16:30",
+                "calorias": round(calories * 0.15),
+                "alimentos": ["1 Pote de Iogurte Natural (170g)", "30g de Aveia em flocos", "Morangos picados"],
+                "dica_preparo": "Opção rica em fibras e carboidratos complexos."
+            },
+            {
+                "nome": "Jantar Leve",
+                "horario": "20:00",
+                "calorias": round(calories * 0.25),
+                "alimentos": ["140g de Peixe ou Patinho moído", "150g de Legumes ao vapor (Brócolis/Cenoura)", "100g de Batata Doce"],
+                "dica_preparo": "Evite excesso de sal e gorduras à noite."
+            }
+        ],
+        "lista_compras": {
+            "Hortifrúti": ["Folhas verdes", "Tomates", "Brócolis", "Cenoura", "Bananas", "Morangos"],
+            "Proteínas": ["Ovos (2 dúzias)", "Peito de Frango (1kg)", "Patinho moído (500g)", "Tilápia"],
+            "Mercearia": ["Arroz integral", "Feijão", "Pão integral", "Aveia", "Azeite Extra Virgem"],
+            "Laticínios": ["Iogurte Natural"]
+        },
         "diretrizes_metabolicas": [
-            "Mantenha intervalos de 3 a 4 horas entre as principais refeições.",
-            "Consuma 500ml de água logo ao acordar para ativar o trato gastrointestinal.",
-            "Evite ultraprocessados, óleos vegetais refinados e refrigerantes açucarados."
+            "Beba água fracionada ao longo do dia.",
+            "Priorize alimentos integrais e reduza açúcares refinados."
         ]
     }
 
 # ==========================================
-# ROTAS DE FRONTEND & PWA
+# ROTAS DE PÁGINAS (FRONTEND)
 # ==========================================
 @app.get("/", response_class=FileResponse)
 def serve_index():
-    path = BASE_DIR / "index.html"
-    if path.exists():
-        return FileResponse(path)
-    return HTMLResponse("<h2>NutriCore Pro Online. Adicione index.html na raiz do projeto.</h2>")
+    index_file = BASE_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return HTMLResponse("<h2>NutriCore Pro Online. Certifique-se de que index.html está no repositório.</h2>")
 
 @app.get("/quiz", response_class=FileResponse)
 def serve_quiz():
-    path = BASE_DIR / "quiz.html"
-    if path.exists():
-        return FileResponse(path)
-    return HTMLResponse("<h2>Quiz NutriCore Pro Online. Adicione quiz.html na raiz do projeto.</h2>")
+    quiz_file = BASE_DIR / "quiz.html"
+    if quiz_file.exists():
+        return FileResponse(quiz_file)
+    return HTMLResponse("<h2>Quiz NutriCore Pro Online. Certifique-se de que quiz.html está no repositório.</h2>")
 
 @app.get("/manifest.json")
 def serve_manifest():
@@ -386,15 +340,13 @@ def serve_manifest():
 @app.get("/health")
 def health_check():
     return {
-        "status": "healthy",
-        "service": "NutriCore Pro API",
-        "timestamp": datetime.utcnow().isoformat(),
-        "gemini_active": bool(GEMINI_API_KEY),
-        "mercadopago_active": bool(MERCADO_PAGO_TOKEN)
+        "status": "online",
+        "service": "NutriCore Pro",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 # ==========================================
-# AUTENTICAÇÃO E PERFIL DO USUÁRIO
+# AUTENTICAÇÃO E PERFIL
 # ==========================================
 @app.post("/api/v1/auth/register")
 def register_user(data: UserRegisterInput):
@@ -412,7 +364,7 @@ def register_user(data: UserRegisterInput):
         conn.close()
         return {
             "status": "success",
-            "message": "Usuário registrado com sucesso.",
+            "message": "Usuário cadastrado com sucesso.",
             "user": {
                 "id": user_id,
                 "name": data.name.strip(),
@@ -422,7 +374,7 @@ def register_user(data: UserRegisterInput):
         }
     except sqlite3.IntegrityError:
         conn.close()
-        raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado no sistema.")
+        raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado.")
 
 @app.post("/api/v1/auth/login")
 def login_user(data: UserLoginInput):
@@ -453,57 +405,11 @@ def login_user(data: UserLoginInput):
         }
     }
 
-@app.post("/api/v1/profile/sync")
-def sync_profile(profile: ProfileUpdateInput):
-    tmb, tdee, daily_cal = calculate_metabolism(
-        profile.gender, profile.weight, profile.height, profile.age, profile.activity_level, profile.goal
-    )
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE email = ?", (profile.user_email.lower().strip(),))
-    user = c.fetchone()
-    user_id = user["id"] if user else None
-
-    now = datetime.utcnow().isoformat()
-    c.execute("""
-        INSERT INTO user_profiles (user_id, gender, age, weight, target_weight, height, activity_level, goal, diet_style, restrictions, tmb, tdee, daily_calories, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            gender=excluded.gender,
-            age=excluded.age,
-            weight=excluded.weight,
-            target_weight=excluded.target_weight,
-            height=excluded.height,
-            activity_level=excluded.activity_level,
-            goal=excluded.goal,
-            diet_style=excluded.diet_style,
-            restrictions=excluded.restrictions,
-            tmb=excluded.tmb,
-            tdee=excluded.tdee,
-            daily_calories=excluded.daily_calories,
-            updated_at=excluded.updated_at
-    """, (
-        user_id, profile.gender, profile.age, profile.weight, profile.target_weight, profile.height,
-        profile.activity_level, profile.goal, profile.diet_style, json.dumps(profile.restrictions),
-        tmb, tdee, daily_cal, now
-    ))
-    conn.commit()
-    conn.close()
-    
-    return {
-        "status": "success",
-        "tmb": tmb,
-        "tdee": tdee,
-        "daily_calories": daily_cal,
-        "message": "Perfil atualizado e sincronizado na nuvem."
-    }
-
 # ==========================================
-# FUNIL DE QUIZ & RECUPERAÇÃO DE LEADS
+# CAPTURA DE LEADS (QUIZ)
 # ==========================================
 @app.post("/api/v1/lead/capture")
-def capture_quiz_lead(lead: LeadCaptureInput):
+def capture_lead(lead: LeadCaptureInput):
     tmb, tdee, daily_cal = calculate_metabolism(
         lead.gender, lead.weight, lead.height, lead.age, lead.activity_level, lead.goal
     )
@@ -516,11 +422,11 @@ def capture_quiz_lead(lead: LeadCaptureInput):
         clean_phone = '55' + clean_phone
 
     wpp_message = (
-        f"Olá {lead.name}! Analisei suas respostas no NutriCore Pro.\n"
-        f"Sua meta de {lead.target_weight}kg é totalmente atingível em aproximadamente {weeks_estimate} semanas.\n"
-        f"Seu diagnóstico metabólico está pronto: https://nutricore-app-1.onrender.com"
+        f"Olá {lead.name}! Seu diagnóstico do NutriCore Pro está concluído.\n"
+        f"Sua meta de {lead.target_weight}kg pode ser atingida em cerca de {weeks_estimate} semanas.\n"
+        f"Acesse seu plano: https://nutricore-app-1.onrender.com"
     )
-    whatsapp_recovery_url = f"https://wa.me/{clean_phone}?text={requests.utils.quote(wpp_message)}"
+    whatsapp_url = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wpp_message)}"
 
     conn = get_db()
     c = conn.cursor()
@@ -541,15 +447,14 @@ def capture_quiz_lead(lead: LeadCaptureInput):
         "tdee": tdee,
         "daily_calories": daily_cal,
         "estimated_weeks": weeks_estimate,
-        "recovery_whatsapp_url": whatsapp_recovery_url,
-        "message": f"Diagnóstico gerado para {lead.name} com sucesso."
+        "recovery_whatsapp_url": whatsapp_url
     }
 
 # ==========================================
-# MOTOR DE IA (GEMINI NUTRITION & SCANNER)
+# GERAÇÃO DE DIETA COM IA (GEMINI OU FALLBACK)
 # ==========================================
 @app.post("/api/v1/plan/generate")
-def generate_plan(data: GeneratePlanInput):
+def generate_diet(data: GeneratePlanInput):
     tmb, tdee, target_calories = calculate_metabolism(
         data.gender, data.weight, data.height, data.age, data.activity_level, data.goal
     )
@@ -560,65 +465,30 @@ def generate_plan(data: GeneratePlanInput):
             client = genai.Client(api_key=GEMINI_API_KEY)
             
             prompt = f"""
-            Você é um nutricionista clínico de elite baseado estritamente na obra e diretrizes: "{data.book_reference}".
-            Gere um plano alimentar de 1 dia perfeito, ultra detalhado e estruturado em JSON para o paciente abaixo:
+            Gere um plano alimentar de 1 dia estruturado em JSON para um paciente:
             - Sexo: {data.gender}, Idade: {data.age}, Peso: {data.weight}kg, Altura: {data.height}cm
-            - Objetivo: {data.goal}
-            - Meta Calórica Alvo: {target_calories} kcal (TMB: {tmb} kcal, Gasto Total: {tdee} kcal)
-            - Estilo de Alimentação: {data.diet_style}
+            - Objetivo: {data.goal}, Meta Calórica Diária: {target_calories} kcal
+            - Estilo: {data.diet_style}
             - Restrições: {', '.join(data.restrictions) if data.restrictions else 'Nenhuma'}
 
-            Retorne OBRIGATORIAMENTE um JSON puro seguindo este schema exato:
+            Retorne estritamente um JSON no formato:
             {{
               "calorias_totais": {target_calories},
-              "macros": {{
-                "proteina_g": 140,
-                "carbo_g": 180,
-                "gordura_g": 50,
-                "fibras_g": 32
-              }},
-              "meta_hidratacao": "2.8 Litros/dia",
+              "macros": {{"proteina_g": 140, "carbo_g": 180, "gordura_g": 50, "fibras_g": 30}},
+              "meta_hidratacao": "2.5 Litros/dia",
               "estilo_aplicado": "{data.diet_style}",
               "refeicoes": [
-                {{
-                  "nome": "Café da Manhã",
-                  "horario": "07:30",
-                  "calorias": 400,
-                  "alimentos": ["3 ovos mexidos", "2 fatias de pão integral", "1 xícara de café preto"],
-                  "dica_preparo": "Evite açúcar refinado."
-                }},
-                {{
-                  "nome": "Almoço",
-                  "horario": "12:30",
-                  "calorias": 650,
-                  "alimentos": ["150g de frango", "120g de arroz", "80g feijão", "Salada à vontade"],
-                  "dica_preparo": "Tempere com azeite e ervas."
-                }},
-                {{
-                  "nome": "Lanche da Tarde",
-                  "horario": "16:30",
-                  "calorias": 250,
-                  "alimentos": ["1 pote de iogurte", "30g aveia", "1 maçã"],
-                  "dica_preparo": "Rico em fibras."
-                }},
-                {{
-                  "nome": "Jantar",
-                  "horario": "20:00",
-                  "calorias": 500,
-                  "alimentos": ["140g de peixe grelhado", "150g batata doce", "Legumes cozidos"],
-                  "dica_preparo": "Refeição leve para favorecer o sono."
-                }}
+                {{"nome": "Café da Manhã", "horario": "07:30", "calorias": 400, "alimentos": ["3 Ovos mexidos", "Pão integral"], "dica_preparo": "Sem açúcar"}},
+                {{"nome": "Almoço", "horario": "12:30", "calorias": 650, "alimentos": ["Frango grelhado", "Arroz", "Feijão", "Salada"], "dica_preparo": "Azeite extra virgem"}},
+                {{"nome": "Lanche da Tarde", "horario": "16:30", "calorias": 250, "alimentos": ["Iogurte com aveia e frutas"], "dica_preparo": "Rico em fibras"}},
+                {{"nome": "Jantar", "horario": "20:00", "calorias": 500, "alimentos": ["Tilápia grelhada com legumes"], "dica_preparo": "Refeição leve"}}
               ],
               "lista_compras": {{
-                "Hortifrúti": ["Maçã", "Legumes variados", "Folhas verdes"],
-                "Proteínas & Ovos": ["Ovos", "Peito de Frango", "Filé de Tilápia"],
-                "Mercearia & Grãos": ["Pão integral", "Arroz", "Feijão", "Aveia", "Azeite"],
-                "Laticínios": ["Iogurte Natural"]
+                "Hortifrúti": ["Folhas verdes", "Tomates", "Frutas"],
+                "Proteínas": ["Ovos", "Frango", "Peixe"],
+                "Mercearia": ["Arroz integral", "Feijão", "Aveia", "Azeite"]
               }},
-              "diretrizes_metabolicas": [
-                "Mastigue devagar para favorecer a sinalização de saciedade via leptina.",
-                "Mantenha a ingestão hídrica constante entre as refeições."
-              ]
+              "diretrizes_metabolicas": ["Mastigue devagar", "Hidrate-se constantemente"]
             }}
             """
             
@@ -627,97 +497,14 @@ def generate_plan(data: GeneratePlanInput):
                 contents=prompt,
                 config={'response_mime_type': 'application/json'}
             )
-            parsed_plan = json.loads(response.text)
-
-            # Salva o plano no banco
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("""
-                INSERT INTO diet_plans (user_email, title, calories, macros_json, meals_json, shopping_list_json, ai_tips, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                data.user_email, f"Plano {data.goal}", target_calories,
-                json.dumps(parsed_plan.get("macros")), json.dumps(parsed_plan.get("refeicoes")),
-                json.dumps(parsed_plan.get("lista_compras")), json.dumps(parsed_plan.get("diretrizes_metabolicas")),
-                datetime.utcnow().isoformat()
-            ))
-            conn.commit()
-            conn.close()
-
-            return parsed_plan
-        except Exception as e:
+            return json.loads(response.text)
+        except Exception:
             pass
 
-    # Fallback determinístico caso o Gemini não responda
-    return generate_deterministic_plan(data.weight, target_calories, data.goal, data.diet_style)
-
-@app.post("/api/v1/ai/scan-plate")
-def scan_food_plate(data: ImageScanInput):
-    if not GEMINI_API_KEY:
-        return {
-            "status": "mock",
-            "prato_identificado": "Prato Tradicional Brasileiro (Arroz, Feijão, Frango e Salada)",
-            "calorias_estimadas": 580,
-            "macros": {"proteina_g": 42, "carbo_g": 65, "gordura_g": 14},
-            "confianca_ia": "94%",
-            "recomendacao": "Excelente equilíbrio entre proteínas magras e fibras."
-        }
-
-    try:
-        from google import genai
-        from google.genai import types
-        
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        img_bytes = base64.b64decode(data.image_base64.split(",")[-1])
-        
-        prompt = """
-        Analise a imagem deste prato de comida e retorne um JSON com:
-        {
-          "prato_identificado": "Nome dos alimentos detectados",
-          "calorias_estimadas": 550,
-          "macros": {"proteina_g": 38, "carbo_g": 60, "gordura_g": 12},
-          "confianca_ia": "95%",
-          "alimentos_detectados": ["150g Frango Grelhado", "100g Arroz", "80g Feijão", "Salada"],
-          "recomendacao": "Feedback nutricional sobre o prato."
-        }
-        """
-        
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[
-                types.Part.from_bytes(data=img_bytes, mime_type='image/jpeg'),
-                prompt
-            ],
-            config={'response_mime_type': 'application/json'}
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao processar imagem via IA: {str(e)}")
-
-@app.post("/api/v1/workout/generate")
-def generate_workout(data: WorkoutGenerateInput):
-    # Prescrição de treino alinhada ao objetivo
-    treinos = {
-        "hipertrofia": [
-            {"dia": "Segunda-feira", "foco": "Peito, Ombros e Tríceps", "exercicios": ["Supino Reto 4x10", "Desenvolvimento Halteres 3x12", "Tríceps Corda 4x12"]},
-            {"dia": "Terça-feira", "foco": "Costas e Bíceps", "exercicios": ["Puxada Alta 4x10", "Remada Curvada 4x10", "Rosca Direta 3x12"]},
-            {"dia": "Quinta-feira", "foco": "Pernas Completo", "exercicios": ["Agachamento Livre 4x8", "Leg Press 4x12", "Cadeira Extensora 3x15"]},
-            {"dia": "Sexta-feira", "foco": "Ombros e Abdômen", "exercicios": ["Elevação Lateral 4x15", "Prancha 3x1min", "Abdominal Infra 3x20"]}
-        ],
-        "emagrecimento": [
-            {"dia": "Segunda-feira", "foco": "Full Body Funcional + HIIT", "exercicios": ["Agachamento com Salto 4x15", "Flexão de Braço 4x12", "Burpees 3x45s"]},
-            {"dia": "Quarta-feira", "foco": "Membros Inferiores & Cardio", "exercicios": ["Passada com Halteres 4x12", "Stiff 4x12", "20min Esteira Inclinada"]},
-            {"dia": "Sexta-feira", "foco": "Tronco & Core Metabólico", "exercicios": ["Remada Unilateral 4x12", "Prancha Dinâmica 4x45s", "Mountain Climbers 4x40s"]}
-        ]
-    }
-    return {
-        "status": "success",
-        "objetivo": data.goal,
-        "divisao": treinos.get(data.goal.lower(), treinos["emagrecimento"])
-    }
+    return generate_fallback_plan(data.weight, target_calories, data.goal, data.diet_style)
 
 # ==========================================
-# PAGAMENTOS PIX (MERCADO PAGO & WEBHOOK)
+# PAGAMENTO PIX
 # ==========================================
 @app.post("/api/v1/pix/create")
 def create_pix(payment: PixCreateInput):
@@ -742,7 +529,6 @@ def create_pix(payment: PixCreateInput):
             if res.status_code in [200, 201]:
                 res_data = res.json()
                 tx_data = res_data.get("point_of_interaction", {}).get("transaction_data", {})
-                
                 pay_id = str(res_data.get("id"))
                 qr_code = tx_data.get("qr_code")
                 qr_base64 = tx_data.get("qr_code_base64")
@@ -765,7 +551,7 @@ def create_pix(payment: PixCreateInput):
         except Exception:
             pass
 
-    # Modo Sandbox / Demonstração
+    # Modo Sandbox
     fake_id = f"PIX-{int(datetime.utcnow().timestamp())}"
     fake_qr = "00020126580014br.gov.bcb.pix0136nutricore-pro-acesso-anual520400005303986540529.905802BR5913NutriCore Pro6009Sao Paulo62070503***6304E2CA"
 
@@ -784,45 +570,6 @@ def create_pix(payment: PixCreateInput):
         "qr_code": fake_qr,
         "qr_code_base64": ""
     }
-
-@app.get("/api/v1/pix/status/{payment_id}")
-def check_pix_status(payment_id: str):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT status, user_email FROM payments WHERE payment_id = ?", (payment_id,))
-    pay = c.fetchone()
-    conn.close()
-
-    if not pay:
-        return {"status": "not_found"}
-
-    return {"status": pay["status"], "user_email": pay["user_email"]}
-
-@app.post("/api/v1/webhooks/mercadopago")
-async def mercadopago_webhook(request: Request):
-    try:
-        data = await request.json()
-        if data.get("action") == "payment.updated" or data.get("type") == "payment":
-            payment_id = data.get("data", {}).get("id")
-            if payment_id and MERCADO_PAGO_TOKEN:
-                headers = {"Authorization": f"Bearer {MERCADO_PAGO_TOKEN}"}
-                res = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers)
-                if res.status_code == 200:
-                    payment_data = res.json()
-                    if payment_data.get("status") == "approved":
-                        user_email = payment_data.get("payer", {}).get("email")
-                        now = datetime.utcnow().isoformat()
-                        
-                        conn = get_db()
-                        c = conn.cursor()
-                        c.execute("UPDATE payments SET status = 'approved', paid_at = ? WHERE payment_id = ?", (now, str(payment_id)))
-                        if user_email:
-                            c.execute("UPDATE users SET is_pro = 1 WHERE email = ?", (user_email.lower().strip(),))
-                        conn.commit()
-                        conn.close()
-        return {"status": "ok"}
-    except Exception:
-        return {"status": "error"}
 
 # ==========================================
 # PAINEL ADMINISTRATIVO & EXPORTAÇÃO CSV
@@ -881,7 +628,6 @@ def admin_portal(senha: str = ""):
 
     conn = get_db()
     c = conn.cursor()
-    
     c.execute("SELECT * FROM leads ORDER BY id DESC")
     leads = c.fetchall()
 
@@ -892,12 +638,9 @@ def admin_portal(senha: str = ""):
     total_pro = c.fetchone()["count"]
 
     c.execute("SELECT SUM(amount) as total FROM payments WHERE status = 'approved'")
-    revenue_row = c.fetchone()
-    total_revenue = revenue_row["total"] if revenue_row["total"] else 0.0
-
+    rev = c.fetchone()["total"]
+    total_revenue = rev if rev else 0.0
     conn.close()
-
-    conversion_rate = round((len(leads) / max(1, total_users)) * 100, 1)
 
     rows = ""
     for l in leads:
@@ -905,7 +648,7 @@ def admin_portal(senha: str = ""):
         if not clean_phone.startswith('55'):
             clean_phone = '55' + clean_phone
         msg = f"Olá {l['name']}, tudo bem? Vi seu diagnóstico metabólico no NutriCore Pro. Gostaria de tirar alguma dúvida sobre o plano?"
-        wpp_url = f"https://wa.me/{clean_phone}?text={requests.utils.quote(msg)}"
+        wpp_url = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(msg)}"
 
         rows += f"""
         <tr style="border-bottom: 1px solid #1f2937;">
