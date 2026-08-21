@@ -6,13 +6,13 @@ import math
 import uuid
 import secrets
 import hashlib
+import sqlite3
 import urllib.parse
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
 import requests
 from fastapi import FastAPI, HTTPException, Request, Response, Header, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,115 +22,112 @@ from google import genai
 from google.genai import types
 
 # ==============================================================================
-# 1. CONFIGURAÇÕES GERAIS
+# 1. CONFIGURAÇÕES E BANCO DE DADOS LOCAL
 # ==============================================================================
 
+DB_PATH = "nutricore.db"
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "nutricore2026").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "").strip()
-SUPABASE_URL = os.getenv("SUPABASE_DATABASE_URL", "").strip()
-
-def get_db_conn():
-    if not SUPABASE_URL:
-        raise Exception("ERRO FATAL: Variável SUPABASE_DATABASE_URL não configurada no ambiente.")
-    return psycopg2.connect(SUPABASE_URL)
 
 def init_db():
-    if not SUPABASE_URL:
-        print("[AVISO] SUPABASE_DATABASE_URL ausente. Pulo da inicialização do banco.")
-        return
-        
-    try:
-        conn = get_db_conn()
-        c = conn.cursor()
-        
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                salt TEXT NOT NULL,
-                subscription_status TEXT DEFAULT 'trial',
-                plan_type TEXT DEFAULT 'free',
-                subscription_end TEXT,
-                is_pro INTEGER DEFAULT 0,
-                created_at TEXT NOT NULL
-            )
-        ''')
-        
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS sessions (
-                token TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                created_at TEXT NOT NULL
-            )
-        ''')
-        
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS user_data (
-                user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                profile_json TEXT,
-                diet_json TEXT,
-                evolution_json TEXT
-            )
-        ''')
-        
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS orders (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                payment_id TEXT UNIQUE,
-                plan_type TEXT NOT NULL,
-                amount REAL NOT NULL,
-                status TEXT DEFAULT 'pending',
-                qr_code TEXT,
-                qr_code_base64 TEXT,
-                created_at TEXT NOT NULL
-            )
-        ''')
-        
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS leads (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                budget_tier TEXT DEFAULT 'economico',
-                tmb REAL,
-                daily_calories REAL,
-                quiz_data_json TEXT,
-                created_at TEXT NOT NULL
-            )
-        ''')
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            subscription_status TEXT DEFAULT 'trial',
+            plan_type TEXT DEFAULT 'free',
+            subscription_end TEXT,
+            is_pro INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_data (
+            user_id INTEGER PRIMARY KEY,
+            profile_json TEXT,
+            diet_json TEXT,
+            evolution_json TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            payment_id TEXT UNIQUE,
+            plan_type TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            qr_code TEXT,
+            qr_code_base64 TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            budget_tier TEXT DEFAULT 'economico',
+            tmb REAL,
+            daily_calories REAL,
+            quiz_data_json TEXT,
+            created_at TEXT NOT NULL
+        )
+    ''')
 
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS protocols (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                protocol_text TEXT NOT NULL,
-                analysis_json TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS protocols (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            protocol_text TEXT NOT NULL,
+            analysis_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
 
-        # Migrações seguras (Postgres aceita IF NOT EXISTS no ADD COLUMN a partir da versão 11+)
-        try:
-            c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_pro INTEGER DEFAULT 0;")
-            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS budget_tier TEXT DEFAULT 'economico';")
-            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS tmb REAL;")
-            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS daily_calories REAL;")
-            c.execute("ALTER TABLE leads ADD COLUMN IF NOT EXISTS quiz_data_json TEXT;")
-            c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS qr_code TEXT;")
-            c.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS qr_code_base64 TEXT;")
-        except Exception as mig_err:
-            pass
+    def add_col(tabela, col_def):
+        col_name = col_def.split()[0]
+        c.execute(f"PRAGMA table_info({tabela})")
+        cols = [col[1] for col in c.fetchall()]
+        if col_name not in cols:
+            try:
+                c.execute(f"ALTER TABLE {tabela} ADD COLUMN {col_def}")
+            except Exception:
+                pass
 
-        conn.commit()
-        conn.close()
-        print("[DB] Banco Supabase inicializado com sucesso!")
-    except Exception as e:
-        print(f"[DB ERRO] Falha ao inicializar o banco Supabase: {e}")
+    add_col("users", "is_pro INTEGER DEFAULT 0")
+    add_col("leads", "budget_tier TEXT DEFAULT 'economico'")
+    add_col("leads", "tmb REAL")
+    add_col("leads", "daily_calories REAL")
+    add_col("leads", "quiz_data_json TEXT")
+    add_col("orders", "qr_code TEXT")
+    add_col("orders", "qr_code_base64 TEXT")
+
+    conn.commit()
+    conn.close()
 
 init_db()
 
@@ -157,29 +154,26 @@ def get_user_by_token(token: Optional[str]):
     if not token:
         return None
     token_clean = token.replace("Bearer ", "").strip()
-    try:
-        conn = get_db_conn()
-        c = conn.cursor(cursor_factory=RealDictCursor)
-        c.execute('''
-            SELECT u.id, u.name, u.email, u.subscription_status, u.plan_type, u.subscription_end, u.is_pro
-            FROM sessions s 
-            JOIN users u ON s.user_id = u.id 
-            WHERE s.token = %s
-        ''', (token_clean,))
-        row = c.fetchone()
-        conn.close()
-        if row:
-            return {
-                "id": row["id"],
-                "name": row["name"],
-                "email": row["email"],
-                "subscription_status": row["subscription_status"],
-                "plan_type": row["plan_type"],
-                "subscription_end": row["subscription_end"],
-                "is_pro": bool(row["is_pro"]) or row["subscription_status"] == 'active'
-            }
-    except Exception:
-        pass
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        SELECT u.id, u.name, u.email, u.subscription_status, u.plan_type, u.subscription_end, u.is_pro
+        FROM sessions s 
+        JOIN users u ON s.user_id = u.id 
+        WHERE s.token = ?
+    ''', (token_clean,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row[0],
+            "name": row[1],
+            "email": row[2],
+            "subscription_status": row[3],
+            "plan_type": row[4],
+            "subscription_end": row[5],
+            "is_pro": bool(row[6]) or row[3] == 'active'
+        }
     return None
 
 # ==============================================================================
@@ -308,14 +302,13 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (SDK OFICIAL GOOGLE-GENAI - ZERO FALLBACK ESTÁTICO)
+# 4. MOTOR IA GEMINI (100% IA - ZERO FALLBACK)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
+    "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash"
+    "gemini-2.5-flash"
 ]
 
 def extrair_json_seguro(texto: str) -> dict:
@@ -336,7 +329,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None) -> dict:
     if not key:
         raise HTTPException(
             status_code=400,
-            detail="Chave API do Gemini não configurada (GEMINI_API_KEY)."
+            detail="Chave API do Gemini não configurada. Insira sua chave nas configurações."
         )
 
     client = genai.Client(api_key=key.strip())
@@ -360,7 +353,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None) -> dict:
 
     raise HTTPException(
         status_code=502,
-        detail=f"Erro ao comunicar com a IA do Gemini: {'; '.join(erros)}"
+        detail=f"Falha na IA do Gemini: {'; '.join(erros)}"
     )
 
 # ==============================================================================
@@ -409,7 +402,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine Supabase", version="24.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="23.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -436,7 +429,7 @@ def serve_manifest():
 def home():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return HTMLResponse("<h2>NutriCore Pro Engine Online (Conectado ao Supabase).</h2>")
+    return HTMLResponse("<h2>NutriCore Pro Engine Online.</h2>")
 
 @app.get("/quiz")
 def quiz_page():
@@ -448,7 +441,6 @@ def quiz_page():
 def health():
     return {
         "status": "online",
-        "database": "Supabase PostgreSQL" if SUPABASE_URL else "NENHUM BANCO CONFIGURADO",
         "gemini_configured": bool(GEMINI_API_KEY),
         "mercadopago_configured": bool(MERCADO_PAGO_TOKEN),
         "timestamp": datetime.utcnow().isoformat()
@@ -489,10 +481,10 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
     msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto."
     wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}"
 
-    conn = get_db_conn()
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "INSERT INTO leads (name, email, phone, budget_tier, tmb, daily_calories, quiz_data_json, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        "INSERT INTO leads (name, email, phone, budget_tier, tmb, daily_calories, quiz_data_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (lead.name.strip(), lead.email.lower().strip(), lead.phone.strip(), orcamento_sel, round(tmb, 1), round(meta_calorica, 1), json.dumps(lead.dict()), agora)
     )
     conn.commit()
@@ -517,9 +509,9 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
 @app.post("/api/auth/register")
 def cadastrar_usuario(dados: RegisterInput):
     email_clean = dados.email.lower().strip()
-    conn = get_db_conn()
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE email = %s", (email_clean,))
+    c.execute("SELECT id FROM users WHERE email = ?", (email_clean,))
     if c.fetchone():
         conn.close()
         raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado. Faça login.")
@@ -528,12 +520,12 @@ def cadastrar_usuario(dados: RegisterInput):
     agora = datetime.utcnow().isoformat()
 
     c.execute(
-        "INSERT INTO users (name, email, password_hash, salt, subscription_status, plan_type, is_pro, created_at) VALUES (%s, %s, %s, %s, 'trial', 'free', 0, %s) RETURNING id",
+        "INSERT INTO users (name, email, password_hash, salt, subscription_status, plan_type, is_pro, created_at) VALUES (?, ?, ?, ?, 'trial', 'free', 0, ?)",
         (dados.name.strip(), email_clean, pwd_hash, salt, agora)
     )
-    user_id = c.fetchone()[0]
+    user_id = c.lastrowid
     token = secrets.token_urlsafe(32)
-    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (%s, %s, %s)", (token, user_id, agora))
+    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user_id, agora))
     conn.commit()
     conn.close()
 
@@ -546,27 +538,28 @@ def cadastrar_usuario(dados: RegisterInput):
 @app.post("/api/auth/login")
 def login_usuario(dados: LoginInput):
     email_clean = dados.email.lower().strip()
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
-    c.execute("SELECT id, name, email, password_hash, salt, subscription_status, plan_type, subscription_end, is_pro FROM users WHERE email = %s", (email_clean,))
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT id, name, email, password_hash, salt, subscription_status, plan_type, subscription_end, is_pro FROM users WHERE email = ?", (email_clean,))
     user = c.fetchone()
     if not user:
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
 
-    if not verify_password(dados.password, user["salt"], user["password_hash"]):
+    user_id, name, email, stored_hash, salt, status_sub, plan, sub_end, is_pro = user
+    if not verify_password(dados.password, salt, stored_hash):
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
 
     token = secrets.token_urlsafe(32)
     agora = datetime.utcnow().isoformat()
-    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (%s, %s, %s)", (token, user["id"], agora))
+    c.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?, ?, ?)", (token, user_id, agora))
     conn.commit()
     conn.close()
 
     return AuthResponse(
         token=token,
-        user={"id": user["id"], "name": user["name"], "email": user["email"], "subscription_status": user["subscription_status"], "plan_type": user["plan_type"], "subscription_end": user["subscription_end"], "is_pro": bool(user["is_pro"]) or user["subscription_status"] == 'active'}
+        user={"id": user_id, "name": name, "email": email, "subscription_status": status_sub, "plan_type": plan, "subscription_end": sub_end, "is_pro": bool(is_pro) or status_sub == "active"}
     )
 
 @app.get("/api/v1/auth/me")
@@ -582,14 +575,11 @@ def obter_usuario_logado(authorization: Optional[str] = Header(None)):
 def logout_usuario(authorization: Optional[str] = Header(None)):
     token = authorization.replace("Bearer ", "").strip() if authorization else None
     if token:
-        try:
-            conn = get_db_conn()
-            c = conn.cursor()
-            c.execute("DELETE FROM sessions WHERE token = %s", (token,))
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        conn.commit()
+        conn.close()
     return {"message": "Desconectado com sucesso."}
 
 # --- PAGAMENTOS PIX ---
@@ -647,11 +637,11 @@ def criar_pagamento_pix(dados: CreatePixPaymentInput, authorization: Optional[st
     qr_img_url = f"[https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=](https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=){urllib.parse.quote(qr_code)}"
     agora = datetime.utcnow().isoformat()
 
-    conn = get_db_conn()
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         INSERT INTO orders (user_id, payment_id, plan_type, amount, status, qr_code, qr_code_base64, created_at)
-        VALUES (%s, %s, %s, %s, 'pending', %s, %s, %s)
+        VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
     ''', (user_id, payment_id, dados.plan_type or 'anual', valor, qr_code, qr_code_base64, agora))
     conn.commit()
     conn.close()
@@ -674,16 +664,16 @@ def criar_pagamento_pix(dados: CreatePixPaymentInput, authorization: Optional[st
 @app.get("/api/v1/pix/status/{payment_id}")
 @app.get("/api/payment/status/{payment_id}")
 def verificar_status_pagamento(payment_id: str):
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
-    c.execute("SELECT status, plan_type, user_id FROM orders WHERE payment_id = %s", (payment_id,))
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT status, plan_type, user_id FROM orders WHERE payment_id = ?", (payment_id,))
     order = c.fetchone()
 
     if not order:
         conn.close()
         return {"status": "pending", "is_approved": False}
 
-    status_val, plan_type, order_user_id = order["status"], order["plan_type"], order["user_id"]
+    status_val, plan_type, order_user_id = order
 
     mp_access_token = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
     if mp_access_token and not payment_id.startswith("demo_") and status_val == "pending":
@@ -696,9 +686,9 @@ def verificar_status_pagamento(payment_id: str):
                     status_val = "approved"
                     dias_add = 30 if plan_type == "mensal" else 365
                     sub_end = (datetime.utcnow() + timedelta(days=dias_add)).isoformat()
-                    c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = %s", (payment_id,))
+                    c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = ?", (payment_id,))
                     if order_user_id:
-                        c.execute("UPDATE users SET subscription_status = 'active', plan_type = %s, is_pro = 1, subscription_end = %s WHERE id = %s", (plan_type, sub_end, order_user_id))
+                        c.execute("UPDATE users SET subscription_status = 'active', plan_type = ?, is_pro = 1, subscription_end = ? WHERE id = ?", (plan_type, sub_end, order_user_id))
                     conn.commit()
         except Exception:
             pass
@@ -716,20 +706,20 @@ def verificar_status_pagamento(payment_id: str):
 @app.api_route("/api/simulate-approve/{payment_id}", methods=["GET", "POST"])
 async def simular_aprovacao_com_id(payment_id: str, authorization: Optional[str] = Header(None)):
     user = get_user_by_token(authorization)
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     
     sub_end = (datetime.utcnow() + timedelta(days=365)).isoformat()
-    c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = %s", (payment_id,))
-    c.execute("SELECT user_id, plan_type FROM orders WHERE payment_id = %s", (payment_id,))
+    c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = ?", (payment_id,))
+    c.execute("SELECT user_id, plan_type FROM orders WHERE payment_id = ?", (payment_id,))
     order = c.fetchone()
     
-    if order and order["user_id"]:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = %s, is_pro = 1, subscription_end = %s WHERE id = %s", (order["plan_type"] or 'anual', sub_end, order["user_id"]))
+    if order and order[0]:
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = ?, is_pro = 1, subscription_end = ? WHERE id = ?", (order[1] or 'anual', sub_end, order[0]))
     elif user:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = %s WHERE id = %s", (sub_end, user["id"]))
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = ? WHERE id = ?", (sub_end, user["id"]))
     else:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = %s", (sub_end,))
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = ?", (sub_end,))
 
     conn.commit()
     conn.close()
@@ -768,21 +758,21 @@ async def simular_aprovacao_sem_id(request: Request, authorization: Optional[str
     payment_id = body.get("payment_id") or request.query_params.get("payment_id")
     email = body.get("email") or request.query_params.get("email")
 
-    conn = get_db_conn()
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     sub_end = (datetime.utcnow() + timedelta(days=365)).isoformat()
 
     if payment_id:
-        c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = %s", (payment_id,))
+        c.execute("UPDATE orders SET status = 'approved' WHERE payment_id = ?", (payment_id,))
     else:
         c.execute("UPDATE orders SET status = 'approved' WHERE status = 'pending'")
 
     if user:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = %s WHERE id = %s", (sub_end, user["id"]))
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = ? WHERE id = ?", (sub_end, user["id"]))
     elif email:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = %s WHERE email = %s", (sub_end, email.lower().strip()))
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = ? WHERE email = ?", (sub_end, email.lower().strip()))
     else:
-        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = %s", (sub_end,))
+        c.execute("UPDATE users SET subscription_status = 'active', plan_type = 'anual', is_pro = 1, subscription_end = ?", (sub_end,))
 
     conn.commit()
     conn.close()
@@ -805,9 +795,9 @@ def obter_dados_usuario(authorization: Optional[str] = Header(None)):
     if not user:
         raise HTTPException(status_code=401, detail="Sessão expirada.")
     
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
-    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = %s", (user["id"],))
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
     row = c.fetchone()
     conn.close()
 
@@ -815,9 +805,9 @@ def obter_dados_usuario(authorization: Optional[str] = Header(None)):
         return {"profile": None, "diet": None, "evolution": None}
     
     return {
-        "profile": json.loads(row["profile_json"]) if row["profile_json"] else None,
-        "diet": json.loads(row["diet_json"]) if row["diet_json"] else None,
-        "evolution": json.loads(row["evolution_json"]) if row["evolution_json"] else None
+        "profile": json.loads(row[0]) if row[0] else None,
+        "diet": json.loads(row[1]) if row[1] else None,
+        "evolution": json.loads(row[2]) if row[2] else None
     }
 
 @app.post("/api/v1/user/sync-data")
@@ -826,22 +816,22 @@ def salvar_dados_usuario(dados: UserDataSyncInput, authorization: Optional[str] 
     if not user:
         raise HTTPException(status_code=401, detail="Sessão expirada.")
 
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
-    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = %s", (user["id"],))
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
     row = c.fetchone()
 
-    p_json = json.dumps(dados.profile) if dados.profile is not None else (row["profile_json"] if row else None)
-    d_json = json.dumps(dados.diet) if dados.diet is not None else (row["diet_json"] if row else None)
-    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row["evolution_json"] if row else None)
+    p_json = json.dumps(dados.profile) if dados.profile is not None else (row[0] if row else None)
+    d_json = json.dumps(dados.diet) if dados.diet is not None else (row[1] if row else None)
+    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row[2] if row else None)
 
     c.execute('''
         INSERT INTO user_data (user_id, profile_json, diet_json, evolution_json)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
-            profile_json = EXCLUDED.profile_json,
-            diet_json = EXCLUDED.diet_json,
-            evolution_json = EXCLUDED.evolution_json
+            profile_json = excluded.profile_json,
+            diet_json = excluded.diet_json,
+            evolution_json = excluded.evolution_json
     ''', (user["id"], p_json, d_json, e_json))
 
     conn.commit()
@@ -1054,10 +1044,10 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
     res["status"] = "success"
     res["gerado_por"] = "Gemini IA (Tempo Real)"
 
-    conn = get_db_conn()
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "INSERT INTO protocols (user_id, protocol_text, analysis_json, created_at) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO protocols (user_id, protocol_text, analysis_json, created_at) VALUES (?, ?, ?, ?)",
         (user_id, protocol_text, json.dumps(res), datetime.utcnow().isoformat())
     )
     conn.commit()
@@ -1065,7 +1055,7 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
 
     return res
 
-# --- TROCA DE ALIMENTOS COM IA PURA ---
+# --- TROCA DE ALIMENTOS COM IA PURA (SEM FALLBACK) ---
 
 @app.post("/api/v1/diet/swap-food", response_model=RefeicaoIA)
 @app.post("/api/v1/food/swap")
@@ -1100,7 +1090,7 @@ def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
     res = executar_chamada_ia(prompt, api_key)
     return RefeicaoIA(**res)
 
-# --- CONSULTA FUNCIONAL COM IA PURA ---
+# --- CONSULTA FUNCIONAL COM IA PURA (SEM FALLBACK) ---
 
 @app.api_route("/api/v1/nutrition/consult", methods=["GET", "POST"])
 @app.api_route("/api/v1/energy/boost", methods=["GET", "POST"])
@@ -1135,7 +1125,7 @@ def consultar_nutricao(dados: Optional[ConsultaFuncionalInput] = None):
     """
     return executar_chamada_ia(prompt, api_key)
 
-# --- PRESCRIÇÃO DE TREINOS COM IA PURA ---
+# --- PRESCRIÇÃO DE TREINOS COM IA PURA (SEM FALLBACK) ---
 
 @app.post("/api/v1/workout/generate")
 def criar_treino(dados: TreinoInput):
@@ -1191,18 +1181,26 @@ def scan_plate():
 def export_leads_csv(senha: str = ""):
     if senha.strip() != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Senha incorreta.")
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
     try:
         c.execute("SELECT * FROM leads ORDER BY id DESC")
-        leads = c.fetchall()
+        leads = [dict(r) for r in c.fetchall()]
     except Exception:
         leads = []
     conn.close()
 
     csv_content = "ID;Nome;Email;WhatsApp;Faixa Orcamento;Calorias Meta;Data Criacao\n"
     for l in leads:
-        csv_content += f"{l['id']};{l['name']};{l['email']};{l['phone']};{l['budget_tier']};{l['daily_calories']};{l['created_at']}\n"
+        lead_id = l.get('id', '')
+        name = l.get('name', '')
+        email = l.get('email', '')
+        phone = l.get('phone', '')
+        budget = l.get('budget_tier', 'economico')
+        cals = l.get('daily_calories') or ''
+        created_at = l.get('created_at', '')
+        csv_content += f"{lead_id};{name};{email};{phone};{budget};{cals};{created_at}\n"
 
     return Response(
         content=csv_content,
@@ -1252,12 +1250,13 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
         </html>
         """
 
-    conn = get_db_conn()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
     
     try:
         c.execute("SELECT * FROM leads ORDER BY id DESC")
-        leads = c.fetchall()
+        leads = [dict(r) for r in c.fetchall()]
     except Exception:
         leads = []
 
