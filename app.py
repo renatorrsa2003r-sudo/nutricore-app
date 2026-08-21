@@ -348,7 +348,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     return None
 
 # ==============================================================================
-# 5. CÁLCULOS METABÓLICOS E FALLBACKS
+# 5. CÁLCULOS METABÓLICOS
 # ==============================================================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -402,7 +402,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra", "100g Frutas vermelhas frescas", "Café espresso"],
+                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra/búfala", "100g Mirtilos ou Morangos frescos", "Café espresso"],
                 "modo_preparo": "Prepare a omelete em fogo baixo com manteiga ghee.",
                 "dica_chef": "Rico em antioxidantes de alta densidade."
             },
@@ -414,8 +414,8 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
-                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos grelhados", "Azeite EV"],
-                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos.",
+                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos e tomatinhos confitados", "Azeite EV"],
+                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos no azeite.",
                 "dica_chef": "Excelente fonte de ômega-3 EPA/DHA."
             },
             {
@@ -426,20 +426,20 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas", "1 colher de Mel"],
+                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas", "1 colher de Mel cru"],
                 "modo_preparo": "Misture os ingredientes em uma taça.",
                 "dica_chef": "Gorduras monoinsaturadas e saciedade prolongada."
             },
             {
                 "nome_refeicao": "Jantar Leve",
-                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha e Brócolis",
+                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ao vapor"],
-                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê.",
+                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ninja ao vapor"],
+                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê aveludado.",
                 "dica_chef": "Proteína de alto valor biológico e ferro heme."
             }
         ]
@@ -453,7 +453,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média com canela", "Café preto"],
                 "modo_preparo": "Prepare os ovos na frigideira com 1 fio de azeite.",
                 "dica_chef": "Proteína e carboidrato de média absorção."
             },
@@ -471,19 +471,19 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
             },
             {
                 "nome_refeicao": "Lanche da Tarde",
-                "titulo_prato": "Iogurte Natural com Chia e Aveia",
+                "titulo_prato": "Iogurte Natural Desnatado com Chia e Aveia",
                 "horario_sugerido": "16:30",
                 "calorias_alvo": round(meta_calorica * 0.15),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de chia"],
+                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de sementes de chia"],
                 "modo_preparo": "Misture tudo em uma tigela.",
                 "dica_chef": "Excelente aporte de fibras solúveis."
             },
             {
                 "nome_refeicao": "Jantar Regenerativo",
-                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes",
+                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes ao Vapor",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
@@ -505,7 +505,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz cozido", "1 Banana prata com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho cozido", "1 Banana prata com canela", "Café preto"],
                 "modo_preparo": "Hidrate e cozinhe o cuscuz no vapor. Prepare os ovos mexidos na frigideira.",
                 "dica_chef": "Custo por refeição de apenas ~R$ 3,50 com proteína completa."
             },
@@ -551,7 +551,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="14.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="15.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -936,6 +936,57 @@ async def simular_aprovacao_sem_id(request: Request, authorization: Optional[str
         "message": "Simulação de teste concluída com sucesso! Acesso PRO liberado."
     }
 
+# --- SINCRONIZAÇÃO NUVEM ---
+
+@app.get("/api/v1/user/sync-data")
+def obter_dados_usuario(authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return {"profile": None, "diet": None, "evolution": None}
+    
+    return {
+        "profile": json.loads(row[0]) if row[0] else None,
+        "diet": json.loads(row[1]) if row[1] else None,
+        "evolution": json.loads(row[2]) if row[2] else None
+    }
+
+@app.post("/api/v1/user/sync-data")
+def salvar_dados_usuario(dados: UserDataSyncInput, authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+
+    p_json = json.dumps(dados.profile) if dados.profile is not None else (row[0] if row else None)
+    d_json = json.dumps(dados.diet) if dados.diet is not None else (row[1] if row else None)
+    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row[2] if row else None)
+
+    c.execute('''
+        INSERT INTO user_data (user_id, profile_json, diet_json, evolution_json)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            profile_json = excluded.profile_json,
+            diet_json = excluded.diet_json,
+            evolution_json = excluded.evolution_json
+    ''', (user["id"], p_json, d_json, e_json))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
 # --- GERAÇÃO DE DIETA / IA ---
 
 @app.post("/api/v1/diet/generate")
@@ -1207,10 +1258,10 @@ def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
         dica_chef="Equivalência nutricional mantida com sucesso."
     )
 
-@app.post("/api/v1/nutrition/consult")
-@app.all("/api/v1/energy/boost")
-@app.all("/api/energy/tips")
-def consultar_nutricao(dados: Optional[ConsultaFuncionalInput] = None):
+@app.api_route("/api/v1/nutrition/consult", methods=["GET", "POST"])
+@app.api_route("/api/v1/energy/boost", methods=["GET", "POST"])
+@app.api_route("/api/energy/tips", methods=["GET", "POST"])
+def consultar_nutricao(request: Request):
     return {
         "titulo_estrategia": "Protocolo de Otimização Mitocondrial e Energia",
         "explicacao_fisiologica": "Aporte de micronutrientes e hidratação adequada estimulam a produção celular de ATP.",
