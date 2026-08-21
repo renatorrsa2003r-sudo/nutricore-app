@@ -112,7 +112,6 @@ def init_db():
         )
     ''')
 
-    # Migrações automáticas de colunas
     def add_col(tabela, col_def):
         col_name = col_def.split()[0]
         c.execute(f"PRAGMA table_info({tabela})")
@@ -182,7 +181,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
+# 3. MODELOS PYDANTIC
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -307,7 +306,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (REST DIRETO - ALTA ESTABILIDADE)
+# 4. MOTOR IA GEMINI (REST DIRETO)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -355,7 +354,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     return None
 
 # ==============================================================================
-# 5. CÁLCULOS METABÓLICOS E FALLBACKS POR ORÇAMENTO
+# 5. CÁLCULOS METABÓLICOS
 # ==============================================================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -502,7 +501,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
             }
         ]
     else:
-        # Padrão: ECONÔMICO (Máximo Custo-Benefício)
+        # Padrão: ECONÔMICO
         return [
             {
                 "nome_refeicao": "Café da Manhã Econômico",
@@ -558,7 +557,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="12.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="13.0.0")
 
 app.add_middleware(
     CORSMiddleware,
