@@ -32,7 +32,6 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # 1. Usuários
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +47,6 @@ def init_db():
         )
     ''')
     
-    # 2. Sessões
     c.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             token TEXT PRIMARY KEY,
@@ -58,7 +56,6 @@ def init_db():
         )
     ''')
     
-    # 3. Dados Sincronizados
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_data (
             user_id INTEGER PRIMARY KEY,
@@ -69,7 +66,6 @@ def init_db():
         )
     ''')
     
-    # 4. Pedidos Pix
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +81,6 @@ def init_db():
         )
     ''')
     
-    # 5. Leads do Quiz
     c.execute('''
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +95,6 @@ def init_db():
         )
     ''')
 
-    # 6. Protocolos Analisados
     c.execute('''
         CREATE TABLE IF NOT EXISTS protocols (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -354,7 +348,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     return None
 
 # ==============================================================================
-# 5. CÁLCULOS METABÓLICOS
+# 5. CÁLCULOS METABÓLICOS E FALLBACKS
 # ==============================================================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -408,7 +402,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra/búfala", "100g Mirtilos ou Morangos frescos", "Café espresso"],
+                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra", "100g Frutas vermelhas frescas", "Café espresso"],
                 "modo_preparo": "Prepare a omelete em fogo baixo com manteiga ghee.",
                 "dica_chef": "Rico em antioxidantes de alta densidade."
             },
@@ -420,7 +414,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
-                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos e tomatinhos confitados", "Azeite EV"],
+                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos grelhados", "Azeite EV"],
                 "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos.",
                 "dica_chef": "Excelente fonte de ômega-3 EPA/DHA."
             },
@@ -432,7 +426,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas laminadas", "1 colher de Mel"],
+                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas", "1 colher de Mel"],
                 "modo_preparo": "Misture os ingredientes em uma taça.",
                 "dica_chef": "Gorduras monoinsaturadas e saciedade prolongada."
             },
@@ -445,7 +439,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
                 "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ao vapor"],
-                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê aveludado.",
+                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê.",
                 "dica_chef": "Proteína de alto valor biológico e ferro heme."
             }
         ]
@@ -459,7 +453,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média", "Café preto"],
                 "modo_preparo": "Prepare os ovos na frigideira com 1 fio de azeite.",
                 "dica_chef": "Proteína e carboidrato de média absorção."
             },
@@ -477,19 +471,19 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
             },
             {
                 "nome_refeicao": "Lanche da Tarde",
-                "titulo_prato": "Iogurte Natural Desnatado com Chia e Aveia",
+                "titulo_prato": "Iogurte Natural com Chia e Aveia",
                 "horario_sugerido": "16:30",
                 "calorias_alvo": round(meta_calorica * 0.15),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de sementes de chia"],
+                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de chia"],
                 "modo_preparo": "Misture tudo em uma tigela.",
                 "dica_chef": "Excelente aporte de fibras solúveis."
             },
             {
                 "nome_refeicao": "Jantar Regenerativo",
-                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes ao Vapor",
+                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
@@ -511,7 +505,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho cozido", "1 Banana prata com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz cozido", "1 Banana prata com canela", "Café preto"],
                 "modo_preparo": "Hidrate e cozinhe o cuscuz no vapor. Prepare os ovos mexidos na frigideira.",
                 "dica_chef": "Custo por refeição de apenas ~R$ 3,50 com proteína completa."
             },
@@ -547,7 +541,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["2 Ovos + 60g Frango desfiado (ou Sardinha)", "100g Mandioca cozida", "120g Abóbora cozida"],
+                "ingredientes": ["2 Ovos + 60g Frango desfiado", "100g Mandioca cozida", "120g Abóbora cozida"],
                 "modo_preparo": "Bata os ovos com o frango e faça na frigideira. Sirva com a mandioca e abóbora.",
                 "dica_chef": "A abóbora é rica em betacaroteno e super econômica."
             }
@@ -557,7 +551,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="13.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="14.0.0")
 
 app.add_middleware(
     CORSMiddleware,
