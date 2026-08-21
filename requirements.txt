@@ -1,7 +1,5 @@
-fastapi
-uvicorn
-pydantic
-requests
-google-genai
-python-multipart
-psycopg2-binary
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+google-genai>=0.1.1
+requests>=2.31.0
