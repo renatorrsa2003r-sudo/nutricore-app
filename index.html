@@ -85,6 +85,14 @@
     .metric-box { background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
     .metric-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
 
+    /* Faixas de Orçamento */
+    .budget-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 6px; }
+    .budget-card { border: 2px solid var(--border); border-radius: 10px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-main); }
+    .budget-card:hover { border-color: var(--accent); }
+    .budget-card.selected { border-color: var(--accent); background: rgba(16, 185, 129, 0.12); color: var(--accent); }
+    .budget-card .budget-title { font-weight: 700; font-size: 0.85rem; }
+    .budget-card .budget-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
     .tag-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .tag-item { background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
     .tag-item.active { background: rgba(16, 185, 129, 0.15); border-color: var(--accent); color: var(--accent); }
@@ -313,22 +321,37 @@
           </div>
 
           <div class="card">
-            <h3>2. Duração do Plano Alimentar</h3>
-            <label style="margin-top: 8px;">Opções Rápidas:</label>
+            <h3>2. Duração & Orçamento Alimentar</h3>
+            <label style="margin-top: 8px;">Duração do Plano:</label>
             <div class="day-selector-pills">
               <span class="pill-opt" onclick="setDiasPlano(1)">1 Dia</span>
               <span class="pill-opt" onclick="setDiasPlano(3)">3 Dias</span>
               <span class="pill-opt" onclick="setDiasPlano(5)">5 Dias</span>
               <span class="pill-opt selected" onclick="setDiasPlano(7)">7 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(10)">10 Dias</span>
               <span class="pill-opt" onclick="setDiasPlano(15)">15 Dias</span>
-              <span class="pill-opt" onclick="setDiasPlano(20)">20 Dias</span>
               <span class="pill-opt" onclick="setDiasPlano(30)">30 Dias</span>
             </div>
-            <div class="form-group" style="margin-top: 10px;">
-              <label>Ou digite a quantidade exata de dias (1 a 30 dias):</label>
+            <div class="form-group" style="margin-top: 6px;">
               <input type="number" id="dias_plano" min="1" max="30" value="7" required onchange="sincronizarPillDias(this.value)">
             </div>
+
+            <!-- SELETOR DAS 3 FAIXAS DE ORÇAMENTO -->
+            <label style="margin-top: 12px; color: var(--accent);">💰 Capacidade de Investimento em Alimentos:</label>
+            <div class="budget-grid">
+              <div class="budget-card selected" id="budget-economico" onclick="selecionarOrcamento('economico')">
+                <div class="budget-title">🟢 Econômico</div>
+                <div class="budget-desc">Ovos, frango, aveia, cuscuz e banana</div>
+              </div>
+              <div class="budget-card" id="budget-moderado" onclick="selecionarOrcamento('moderado')">
+                <div class="budget-title">🟡 Equilibrado</div>
+                <div class="budget-desc">Patinho, tilápia, queijos magros e iogurte</div>
+              </div>
+              <div class="budget-card" id="budget-premium" onclick="selecionarOrcamento('premium')">
+                <div class="budget-title">🟣 Gourmet</div>
+                <div class="budget-desc">Salmão, mignon, castanhas e frutas nobres</div>
+              </div>
+            </div>
+            <input type="hidden" id="orcamento_selecionado" value="economico">
           </div>
         </div>
 
@@ -583,7 +606,7 @@
     <section id="tab-configuracoes" class="tab-content">
       <header><h1>Configurações</h1></header>
       <div class="card">
-        <div class="form-group"><label>Chave API Gemini</label><input type="password" id="gemini-key" placeholder="Cole sua chave aqui"></div>
+        <div class="form-group"><label>Chave API Gemini (Opcional - Backend já possui chave mestre)</label><input type="password" id="gemini-key" placeholder="Cole sua chave aqui caso deseje usar chave pessoal"></div>
         <div class="form-group"><label>Tema</label><select id="tema" onchange="alterarTema(this.value)"><option value="light">Claro</option><option value="dark">Escuro</option></select></div>
         <button class="btn-primary" onclick="salvarConfiguracoes()">Salvar Configurações</button>
       </div>
@@ -726,6 +749,15 @@
     let trocaContextoDia = 1;
     let trocaContextoRefIdx = 0;
     let debounceSalvarTimer = null;
+
+    // --- SELEÇÃO DE ORÇAMENTO ---
+    function selecionarOrcamento(orcamento) {
+      document.getElementById('orcamento_selecionado').value = orcamento;
+      document.getElementById('budget-economico').classList.toggle('selected', orcamento === 'economico');
+      document.getElementById('budget-moderado').classList.toggle('selected', orcamento === 'moderado');
+      document.getElementById('budget-premium').classList.toggle('selected', orcamento === 'premium');
+      salvarEstadoPerfil();
+    }
 
     // --- AUTENTICAÇÃO ---
     function alternarAbaAuth(modo) {
@@ -897,7 +929,6 @@
     }
 
     // --- SISTEMA DE PAGAMENTO E PAYWALL ---
-
     function abrirModalPlanos() {
       document.getElementById('modalPlanos').classList.add('active');
     }
@@ -942,7 +973,6 @@
       if (qrCodeBase64) {
         container.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" style="width:160px; height:160px; object-fit:contain;" />`;
       } else {
-        // Gerador de imagem direto via API pública (zero dependência e sem risco de erro)
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrCodeText)}`;
         container.innerHTML = `<img src="${qrUrl}" alt="QR Code Pix" style="width:160px; height:160px;" />`;
       }
@@ -967,7 +997,7 @@
       if (!idPagamentoAtual) return;
       try {
         const res = await safeFetch(`/api/v1/payment/check-status/${idPagamentoAtual}`, {});
-        if (res.status === 'approved') {
+        if (res.status === 'approved' || res.is_approved) {
           clearInterval(intervalPollingPix);
           fecharModalPix();
           usuarioAtual.subscription_status = 'active';
@@ -1057,6 +1087,7 @@
 
     function salvarEstadoPerfil() {
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
+      const orcamento = document.getElementById('orcamento_selecionado').value || 'economico';
       const dados = {
         idade: parseInt(document.getElementById('idade').value) || 28, 
         sexo: document.getElementById('sexo').value,
@@ -1064,6 +1095,7 @@
         altura: parseFloat(document.getElementById('altura').value) || 178,
         nivel_atividade: document.getElementById('nivel_atividade').value, 
         objetivo: document.getElementById('objetivo').value,
+        orcamento: orcamento,
         ritmo_objetivo: document.getElementById('ritmo_objetivo').value, 
         horario_acordar: document.getElementById('horario_acordar').value,
         horario_dormir: document.getElementById('horario_dormir').value, 
@@ -1100,6 +1132,7 @@
       if (d.peso) document.getElementById('peso').value = d.peso;
       if (d.altura) document.getElementById('altura').value = d.altura;
       if (d.nivel_atividade) document.getElementById('nivel_atividade').value = d.nivel_atividade;
+      if (d.orcamento) selecionarOrcamento(d.orcamento);
       if (d.dias_plano) {
         document.getElementById('dias_plano').value = d.dias_plano;
         sincronizarPillDias(d.dias_plano);
@@ -1348,7 +1381,7 @@
 
     function renderizarDietaCompleta(data) {
       if (!data || !data.dias || data.dias.length === 0) return;
-      document.getElementById('card-calorias').innerText = data.meta_calorica + ' kcal';
+      document.getElementById('card-calorias').innerText = (data.meta_calorica || data.calorias_totais) + ' kcal';
       document.getElementById('card-proteinas').innerText = data.macros.proteinas_g + ' g';
       document.getElementById('card-carbos').innerText = data.macros.carboidratos_g + ' g';
       document.getElementById('card-gorduras').innerText = data.macros.gorduras_g + ' g';
@@ -1477,9 +1510,11 @@
 
       try {
         const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
+        const orcamento = document.getElementById('orcamento_selecionado').value || 'economico';
         const novaRefeicao = await safeFetch('/api/v1/diet/swap-food', {
           refeicao_atual: refAtual,
           motivo_ou_substituto: motivo,
+          orcamento: orcamento,
           preferencia: document.getElementById('preferencia').value,
           estilo_culinario: document.getElementById('estilo_culinario').value,
           intolerancias_saude: tags
@@ -1697,7 +1732,7 @@
             <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ciclo Personalizado de ${dadosPlanoAtual.dias.length} Dia(s) - Paciente: ${usuarioAtual?.name || 'Cliente'}</p>
           </div>
           <div style="text-align: right; font-size: 11px; color: #64748b;">
-            Meta Diária: <strong>${dadosPlanoAtual.meta_calorica} kcal</strong><br>
+            Meta Diária: <strong>${dadosPlanoAtual.meta_calorica || dadosPlanoAtual.calorias_totais} kcal</strong><br>
             P: ${dadosPlanoAtual.macros.proteinas_g}g | C: ${dadosPlanoAtual.macros.carboidratos_g}g | G: ${dadosPlanoAtual.macros.gorduras_g}g
           </div>
         </div>
@@ -1813,16 +1848,26 @@
       e.preventDefault();
       salvarEstadoPerfil();
       const tags = Array.from(document.querySelectorAll('#container-tags-clinicas .tag-item.active')).map(t => t.innerText.trim());
+      const orcamento = document.getElementById('orcamento_selecionado').value || 'economico';
       gerarCardapio({
-        idade: parseInt(document.getElementById('idade').value), sexo: document.getElementById('sexo').value,
-        peso_kg: parseFloat(document.getElementById('peso').value), altura_cm: parseFloat(document.getElementById('altura').value),
-        nivel_atividade: document.getElementById('nivel_atividade').value, objetivo: document.getElementById('objetivo').value,
+        idade: parseInt(document.getElementById('idade').value), 
+        sexo: document.getElementById('sexo').value,
+        peso_kg: parseFloat(document.getElementById('peso').value), 
+        altura_cm: parseFloat(document.getElementById('altura').value),
+        nivel_atividade: document.getElementById('nivel_atividade').value, 
+        objetivo: document.getElementById('objetivo').value,
+        orcamento: orcamento,
         dias_plano: parseInt(document.getElementById('dias_plano').value) || 7,
-        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, horario_acordar: document.getElementById('horario_acordar').value,
-        horario_dormir: document.getElementById('horario_dormir').value, horario_treino: document.getElementById('horario_treino').value,
-        refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value), estilo_culinario: document.getElementById('estilo_culinario').value,
-        preferencia: document.getElementById('preferencia').value, alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
-        alimentos_evitar: document.getElementById('alimentos_evitar').value, intolerancias_saude: tags
+        ritmo_objetivo: document.getElementById('ritmo_objetivo').value, 
+        horario_acordar: document.getElementById('horario_acordar').value,
+        horario_dormir: document.getElementById('horario_dormir').value, 
+        horario_treino: document.getElementById('horario_treino').value,
+        refeicoes_por_dia: parseInt(document.getElementById('refeicoes_por_dia').value), 
+        estilo_culinario: document.getElementById('estilo_culinario').value,
+        preferencia: document.getElementById('preferencia').value, 
+        alimentos_favoritos: document.getElementById('alimentos_favoritos').value,
+        alimentos_evitar: document.getElementById('alimentos_evitar').value, 
+        intolerancias_saude: tags
       });
     });
 
