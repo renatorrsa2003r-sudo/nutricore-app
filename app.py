@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 # ==============================================================================
-# 1. CONFIGURAÇÕES E BANCO DE DADOS
+# 1. CONFIGURAÇÕES E BANCO DE DADOS LOCAL
 # ==============================================================================
 
 DB_PATH = "nutricore.db"
@@ -173,7 +173,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
+# 3. MODELOS PYDANTIC
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -290,7 +290,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA (MULTI-MODELO COM FALLBACK AUTOMÁTICO)
+# 4. MOTOR IA (FALLBACK RESILIENTE)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -405,7 +405,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. APLICAÇÃO FASTAPI E ROTAS
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="9.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="10.0.0")
 
 app.add_middleware(
     CORSMiddleware,
