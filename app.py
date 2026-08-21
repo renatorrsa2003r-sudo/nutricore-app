@@ -24,9 +24,9 @@ from pydantic import BaseModel, Field
 # ==============================================================================
 
 DB_PATH = "nutricore.db"
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "nutricore2026").strip()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "").strip()
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "nutricore2026")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -111,24 +111,6 @@ def init_db():
         )
     ''')
 
-    # Migrações seguras de colunas em bases de dados existentes
-    def add_col(tabela, col_def):
-        col_name = col_def.split()[0]
-        c.execute(f"PRAGMA table_info({tabela})")
-        cols = [col[1] for col in c.fetchall()]
-        if col_name not in cols:
-            try:
-                c.execute(f"ALTER TABLE {tabela} ADD COLUMN {col_def}")
-            except Exception:
-                pass
-
-    add_col("users", "is_pro INTEGER DEFAULT 0")
-    add_col("leads", "tmb REAL")
-    add_col("leads", "daily_calories REAL")
-    add_col("leads", "quiz_data_json TEXT")
-    add_col("orders", "qr_code TEXT")
-    add_col("orders", "qr_code_base64 TEXT")
-
     conn.commit()
     conn.close()
 
@@ -180,7 +162,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. MODELOS PYDANTIC
+# 3. ENUMS E MODELOS PYDANTIC
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -355,9 +337,9 @@ class TreinoResponse(BaseModel):
     treino_principal: List[Exercicio]
     finalizacao: List[Exercicio]
 
-# ==============================================
-# 4. MOTOR IA (MULTI-MODELO COM FALLBACK AUTOMÁTICO)
-# ==============================================
+# ==============================================================================
+# 4. MOTOR DE IA (GEMINI MULTI-MODELOS COM FALLBACK SEGURO)
+# ==============================================================================
 
 MODELOS_ATIVOS = [
     "gemini-2.5-flash",
@@ -374,7 +356,7 @@ def extrair_json_seguro(texto: str):
     return json.loads(texto.strip())
 
 def obter_chave(api_key_param: Optional[str]):
-    key = api_key_param or GEMINI_API_KEY
+    key = api_key_param or os.getenv("GEMINI_API_KEY")
     if not key or key.strip() == "":
         return None
     return key.strip()
@@ -384,6 +366,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     if not key or not str(key).startswith("AIzaSy"):
         return None
 
+    # Chamada REST direta multi-modelos
     for modelo in MODELOS_ATIVOS:
         for _ in range(2):
             try:
@@ -402,6 +385,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
                 time.sleep(0.4)
                 continue
 
+    # Fallback via SDK caso instalado
     try:
         from google import genai
         from google.genai import types
@@ -471,7 +455,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. APLICAÇÃO FASTAPI E ROTAS
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="7.5.0")
+app = FastAPI(title="NutriCore Pro Enterprise Engine", version="7.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -621,7 +605,7 @@ def login_usuario(dados: LoginInput):
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
 
-    user_id, name, email, stored_hash, salt, status_sub, plan, sub_end, is_pro = user
+    user_id, name, email, stored_hash, salt, status, plan, sub_end, is_pro = user
     if not verify_password(dados.password, salt, stored_hash):
         conn.close()
         raise HTTPException(status_code=400, detail="E-mail ou senha incorretos.")
@@ -638,10 +622,10 @@ def login_usuario(dados: LoginInput):
             "id": user_id,
             "name": name,
             "email": email,
-            "subscription_status": status_sub,
+            "subscription_status": status,
             "plan_type": plan,
             "subscription_end": sub_end,
-            "is_pro": bool(is_pro) or status_sub == "active"
+            "is_pro": bool(is_pro) or status == "active"
         }
     )
 
@@ -665,7 +649,7 @@ def logout_usuario(authorization: Optional[str] = Header(None)):
         conn.close()
     return {"message": "Desconectado com sucesso."}
 
-# --- PAGAMENTOS PIX ---
+# --- PAGAMENTOS PIX (MERCADO PAGO + DEMO/SANDBOX) ---
 
 @app.post("/api/v1/payment/create-pix")
 @app.post("/api/v1/pix/create")
@@ -1062,7 +1046,7 @@ async def criar_plano(request: Request):
             "cardapio": [r.dict() for r in primeiro_dia_refeicoes]
         }
 
-    # Fallback Clínico
+    # Fallback Determinístico Clínico
     default_refeicoes = [
         {"nome_refeicao": "Café da Manhã", "titulo_prato": "Ovos Mexidos com Aveia e Fruta", "horario_sugerido": "07:30", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["3 ovos inteiros", "30g farelo de aveia", "1 banana"], "modo_preparo": "Mexa os ovos na frigideira com fio de azeite.", "dica_chef": "Consuma proteínas pela manhã para estabilidade glicêmica."},
         {"nome_refeicao": "Almoço", "titulo_prato": "Peito de Frango com Arroz Integral e Feijão", "horario_sugerido": "12:30", "calorias_alvo": round(meta_calorica * 0.35), "proteinas_refeicao_g": round(macros.proteinas_g * 0.35), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35), "gorduras_refeicao_g": round(macros.gorduras_g * 0.35), "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde à vontade"], "modo_preparo": "Grelhe o frango com ervas finas.", "dica_chef": "Tempere a salada com azeite e limão fresco."},
@@ -1327,33 +1311,21 @@ def scan_plate():
         "recomendacao": "Excelente equilíbrio entre proteínas magras e fibras de digestão lenta."
     }
 
-# ==============================================================================
-# 7. PAINEL ADMINISTRATIVO (/admin) & EXPORTAÇÃO CSV
-# ==============================================================================
+# --- PAINEL ADMINISTRATIVO & EXPORTAÇÃO CSV ---
 
 @app.get("/admin/export/leads.csv")
 def export_leads_csv(senha: str = ""):
-    if senha.strip() != ADMIN_PASSWORD:
+    if senha != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Senha incorreta.")
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    try:
-        c.execute("SELECT * FROM leads ORDER BY id DESC")
-        leads = [dict(r) for r in c.fetchall()]
-    except Exception:
-        leads = []
+    c.execute("SELECT id, name, email, phone, tmb, daily_calories, created_at FROM leads ORDER BY id DESC")
+    leads = c.fetchall()
     conn.close()
 
-    csv_content = "ID;Nome;Email;WhatsApp;Calorias Meta;Data Criacao\n"
+    csv_content = "ID;Nome;Email;WhatsApp;TMB;Calorias Meta;Data Criacao\n"
     for l in leads:
-        lead_id = l.get('id', '')
-        name = l.get('name', '')
-        email = l.get('email', '')
-        phone = l.get('phone', '')
-        cals = l.get('daily_calories') or ''
-        created_at = l.get('created_at', '')
-        csv_content += f"{lead_id};{name};{email};{phone};{cals};{created_at}\n"
+        csv_content += f"{l[0]};{l[1]};{l[2]};{l[3]};{l[4]};{l[5]};{l[6]}\n"
 
     return Response(
         content=csv_content,
@@ -1361,26 +1333,14 @@ def export_leads_csv(senha: str = ""):
         headers={"Content-Disposition": "attachment; filename=leads_nutricore.csv"}
     )
 
-@app.api_route("/admin", methods=["GET", "POST"], response_class=HTMLResponse)
-async def admin_portal(request: Request, senha: Optional[str] = None):
-    body_senha = ""
-    if request.method == "POST":
-        try:
-            form = await request.form()
-            body_senha = form.get("senha", "")
-        except Exception:
-            pass
-
-    param_senha = senha or request.query_params.get("senha") or body_senha or ""
-    param_senha = param_senha.strip()
-
-    if param_senha != ADMIN_PASSWORD:
+@app.get("/admin", response_class=HTMLResponse)
+def admin_portal(senha: str = ""):
+    if senha != ADMIN_PASSWORD:
         return f"""
         <!DOCTYPE html>
         <html lang="pt-BR">
         <head>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Admin - NutriCore Pro</title>
             <style>
                 body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }}
@@ -1393,9 +1353,9 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
         <body>
             <div class="card">
                 <h2>⚡ Admin NutriCore</h2>
-                <p style="color: #9ca3af; font-size: 0.9rem;">Insira a sua palavra-passe de administrador.</p>
+                <p style="color: #9ca3af; font-size: 0.9rem;">Insira sua senha mestre para acessar os dados.</p>
                 <form method="get" action="/admin">
-                    <input type="password" name="senha" placeholder="Palavra-passe Administrador" required autofocus>
+                    <input type="password" name="senha" placeholder="Senha Administrador" required autofocus>
                     <button type="submit">Entrar no Dashboard</button>
                 </form>
             </div>
@@ -1406,58 +1366,41 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
-    try:
-        c.execute("SELECT * FROM leads ORDER BY id DESC")
-        leads = [dict(r) for r in c.fetchall()]
-    except Exception:
-        leads = []
+    c.execute("SELECT * FROM leads ORDER BY id DESC")
+    leads = c.fetchall()
 
-    try:
-        c.execute("SELECT COUNT(*) as count FROM users")
-        total_users = c.fetchone()["count"]
-    except Exception:
-        total_users = 0
+    c.execute("SELECT COUNT(*) as count FROM users")
+    total_users = c.fetchone()["count"]
 
-    try:
-        c.execute("SELECT COUNT(*) as count FROM users WHERE is_pro = 1 OR subscription_status = 'active'")
-        total_pro = c.fetchone()["count"]
-    except Exception:
-        total_pro = 0
+    c.execute("SELECT COUNT(*) as count FROM users WHERE is_pro = 1 OR subscription_status = 'active'")
+    total_pro = c.fetchone()["count"]
 
-    try:
-        c.execute("SELECT SUM(amount) as total FROM orders WHERE status = 'approved'")
-        rev_row = c.fetchone()
-        total_revenue = rev_row["total"] if rev_row and rev_row["total"] else 0.0
-    except Exception:
-        total_revenue = 0.0
+    c.execute("SELECT SUM(amount) as total FROM orders WHERE status = 'approved'")
+    rev_row = c.fetchone()
+    total_revenue = rev_row["total"] if rev_row and rev_row["total"] else 0.0
 
     conn.close()
 
     rows = ""
     for l in leads:
-        clean_phone = re.sub(r'\D', '', str(l.get('phone', '')))
-        if clean_phone and not clean_phone.startswith('55'):
+        clean_phone = re.sub(r'\D', '', str(l['phone']))
+        if not clean_phone.startswith('55'):
             clean_phone = '55' + clean_phone
-        
-        lead_name = l.get('name', 'Lead')
-        msg = f"Olá {lead_name}, tudo bem? Vi seu diagnóstico metabólico no NutriCore Pro. Gostaria de tirar alguma dúvida sobre o plano?"
-        wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}" if clean_phone else "#"
-        cals = l.get('daily_calories') or '-'
-        created_at_val = str(l.get('created_at', ''))[:16].replace('T', ' ')
+        msg = f"Olá {l['name']}, tudo bem? Vi seu diagnóstico metabólico no NutriCore Pro. Gostaria de tirar alguma dúvida sobre o plano?"
+        wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}"
 
         rows += f"""
         <tr style="border-bottom: 1px solid #1f2937;">
-            <td style="padding: 12px; color: #9ca3af;">#{l.get('id', '-')}</td>
-            <td style="padding: 12px; font-weight: 600;">{lead_name}</td>
-            <td style="padding: 12px; color: #cbd5e1;">{l.get('email', '-')}</td>
+            <td style="padding: 12px; color: #9ca3af;">#{l['id']}</td>
+            <td style="padding: 12px; font-weight: 600;">{l['name']}</td>
+            <td style="padding: 12px; color: #cbd5e1;">{l['email']}</td>
             <td style="padding: 12px;">
                 <a href="{wpp_url}" target="_blank" style="background: #064e3b; color: #34d399; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
-                    💬 {l.get('phone', '-')}
+                    💬 {l['phone']}
                 </a>
             </td>
-            <td style="padding: 12px; color: #38bdf8; font-weight: bold;">{cals} kcal</td>
-            <td style="padding: 12px; color: #9ca3af; font-size: 0.85rem;">{created_at_val}</td>
+            <td style="padding: 12px; color: #38bdf8; font-weight: bold;">{l['daily_calories'] or '-'} kcal</td>
+            <td style="padding: 12px; color: #9ca3af; font-size: 0.85rem;">{l['created_at'][:16].replace('T', ' ')}</td>
         </tr>
         """
 
@@ -1487,10 +1430,10 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
             <div class="header">
                 <div>
                     <h1 style="margin: 0; font-size: 1.8rem;">🚀 Painel Executivo de Vendas</h1>
-                    <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 0.9rem;">Leads em tempo real e links rápidos de fecho no WhatsApp.</p>
+                    <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 0.9rem;">Leads em tempo real e links rápidos de fechamento no WhatsApp.</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <a href="/admin/export/leads.csv?senha={param_senha}" class="btn-csv">📥 Descarregar Folha CSV</a>
+                    <a href="/admin/export/leads.csv?senha={senha}" class="btn-csv">📥 Baixar Planilha CSV</a>
                     <a href="/admin" style="color: #ef4444; text-decoration: none; font-weight: bold; font-size: 0.9rem;">Sair</a>
                 </div>
             </div>
@@ -1501,15 +1444,15 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
                     <div class="stat-val">{len(leads)}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">Total de Utilizadores</div>
+                    <div class="stat-title">Total de Usuários</div>
                     <div class="stat-val" style="color: #38bdf8;">{total_users}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">Subscritores PRO</div>
+                    <div class="stat-title">Assinantes PRO</div>
                     <div class="stat-val" style="color: #f59e0b;">{total_pro}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">Faturação Aprovada</div>
+                    <div class="stat-title">Faturamento Aprovado</div>
                     <div class="stat-val" style="color: #10b981;">R$ {total_revenue:,.2f}</div>
                 </div>
             </div>
@@ -1527,7 +1470,7 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
                         </tr>
                     </thead>
                     <tbody>
-                        {rows if rows else '<tr><td colspan="6" style="padding: 30px; text-align: center; color: #9ca3af;">Nenhum lead registado na base de dados.</td></tr>'}
+                        {rows if rows else '<tr><td colspan="6" style="padding: 30px; text-align: center; color: #9ca3af;">Nenhum lead registrado no banco.</td></tr>'}
                     </tbody>
                 </table>
             </div>
