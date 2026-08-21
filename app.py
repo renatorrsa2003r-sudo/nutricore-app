@@ -28,9 +28,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
 
 app = FastAPI(
-    title="NutriCore Pro - Universal Engine",
-    description="Backend completo com Pix integrado, IA, Leads e Painel Admin",
-    version="3.2.0"
+    title="NutriCore Pro - Enterprise Engine",
+    description="Backend definitivo com todas as rotas de Pix, IA e Dashboard mapeadas",
+    version="3.3.0"
 )
 
 app.add_middleware(
@@ -128,7 +128,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# CÁLCULOS METABÓLICOS & UTILITÁRIOS
+# CÁLCULOS METABÓLICOS
 # ==========================================
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -188,21 +188,21 @@ def generate_fallback_plan(weight: float, calories: float, goal: str, diet_style
                 "horario": "12:30",
                 "calorias": round(calories * 0.35),
                 "alimentos": ["150g de Peito de Frango grelhado", "120g de Arroz Integral", "80g de Feijão", "Salada verde à vontade", "1 Fio de azeite"],
-                "dica_preparo": "Adicione limão à salada para favorecer a digestão."
+                "dica_preparo": "Adicione limão à salada para favorecer a absorção de nutrientes."
             },
             {
                 "nome": "Lanche da Tarde",
                 "horario": "16:30",
                 "calorias": round(calories * 0.15),
                 "alimentos": ["1 Pote de Iogurte Natural (170g)", "30g de Aveia em flocos", "Morangos picados"],
-                "dica_preparo": "Opção rica em fibras e carboidratos complexos."
+                "dica_preparo": "Opção rica em fibras solúveis."
             },
             {
                 "nome": "Jantar Leve",
                 "horario": "20:00",
                 "calorias": round(calories * 0.25),
                 "alimentos": ["140g de Peixe ou Patinho moído", "150g de Legumes ao vapor (Brócolis/Cenoura)", "100g de Batata Doce"],
-                "dica_preparo": "Evite excesso de sal e gorduras à noite."
+                "dica_preparo": "Refeição leve para uma boa digestão noturna."
             }
         ],
         "lista_compras": {
@@ -212,8 +212,8 @@ def generate_fallback_plan(weight: float, calories: float, goal: str, diet_style
             "Laticínios": ["Iogurte Natural"]
         },
         "diretrizes_metabolicas": [
-            "Beba água fracionada ao longo do dia.",
-            "Priorize alimentos integrais e reduza açúcares refinados."
+            "Beba água regularmente ao longo do dia.",
+            "Priorize alimentos naturais e evite ultraprocessados."
         ]
     }
 
@@ -225,14 +225,14 @@ def serve_index():
     path = BASE_DIR / "index.html"
     if path.exists():
         return FileResponse(path)
-    return HTMLResponse("<h2>NutriCore Pro Online. Certifique-se de que index.html está no repositório.</h2>")
+    return HTMLResponse("<h2>NutriCore Pro Online. Verifique se index.html está no repositório.</h2>")
 
 @app.get("/quiz", response_class=FileResponse)
 def serve_quiz():
     path = BASE_DIR / "quiz.html"
     if path.exists():
         return FileResponse(path)
-    return HTMLResponse("<h2>Quiz NutriCore Pro Online. Certifique-se de que quiz.html está no repositório.</h2>")
+    return HTMLResponse("<h2>Quiz NutriCore Pro Online. Verifique se quiz.html está no repositório.</h2>")
 
 @app.get("/manifest.json")
 def serve_manifest():
@@ -262,15 +262,190 @@ def health_check():
     }
 
 # ==========================================
-# GERAÇÃO DE DIETA COM IA (TODAS AS ROTAS)
+# ROTAS DE PAGAMENTO PIX (COM TODAS AS VARIAÇÕES MAPEADAS)
+# ==========================================
+@app.post("/api/v1/payment/create-pix")
+@app.post("/api/v1/payment/create")
+@app.post("/api/v1/payments/create")
+@app.post("/api/v1/pix/create")
+@app.post("/api/payment/create-pix")
+@app.post("/api/payment/create")
+@app.post("/api/payments/create")
+@app.post("/api/pix/create")
+@app.post("/api/create-pix")
+@app.post("/api/create_pix")
+@app.post("/api/payment/pix")
+@app.post("/api/pix")
+@app.post("/create-pix")
+async def create_pix_handler(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    email = body.get("email") or "cliente@nutricore.app"
+    name = body.get("name") or body.get("nome") or "Cliente NutriCore"
+    amount = float(body.get("amount") or body.get("valor") or 29.90)
+    plan_type = body.get("plan_type") or "pro_annual"
+    now = datetime.utcnow().isoformat()
+
+    # 1. Integração com Mercado Pago (se configurado)
+    if MERCADO_PAGO_TOKEN and len(MERCADO_PAGO_TOKEN) > 15:
+        try:
+            headers = {
+                "Authorization": f"Bearer {MERCADO_PAGO_TOKEN}",
+                "Content-Type": "application/json",
+                "X-Idempotency-Key": str(uuid.uuid4())
+            }
+            first_name = name.split()[0] if name else "Cliente"
+            last_name = name.split()[-1] if len(name.split()) > 1 else "NutriCore"
+            
+            mp_payload = {
+                "transaction_amount": amount,
+                "description": f"NutriCore Pro - {plan_type}",
+                "payment_method_id": "pix",
+                "payer": {
+                    "email": email,
+                    "first_name": first_name,
+                    "last_name": last_name
+                }
+            }
+            
+            res = requests.post("https://api.mercadopago.com/v1/payments", headers=headers, json=mp_payload, timeout=10)
+            if res.status_code in [200, 201]:
+                res_data = res.json()
+                tx_data = res_data.get("point_of_interaction", {}).get("transaction_data", {})
+                pay_id = str(res_data.get("id"))
+                qr_code = tx_data.get("qr_code") or ""
+                qr_base64 = tx_data.get("qr_code_base64") or ""
+                qr_url = tx_data.get("ticket_url") or ""
+
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO payments (payment_id, user_email, user_name, amount, status, qr_code, qr_code_base64, plan_type, created_at)
+                    VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+                """, (pay_id, email, name, amount, qr_code, qr_base64, plan_type, now))
+                conn.commit()
+                conn.close()
+
+                return {
+                    "status": "success",
+                    "payment_id": pay_id,
+                    "id": pay_id,
+                    "qr_code": qr_code,
+                    "qr_code_base64": qr_base64,
+                    "qr_code_url": qr_url,
+                    "ticket_url": qr_url,
+                    "copia_e_cola": qr_code,
+                    "pix_code": qr_code
+                }
+        except Exception as e:
+            print(f"[MercadoPago Log] {e}")
+
+    # 2. Resposta de Fallback com Imagem de QR Code gerada
+    fake_id = f"PIX-{int(datetime.utcnow().timestamp())}"
+    copia_cola = f"00020126580014br.gov.bcb.pix0136nutricore-pro-acesso-anual520400005303986540{amount:.2f}5802BR5913NutriCore Pro6009Sao Paulo62070503***6304E2CA"
+    qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={urllib.parse.quote(copia_cola)}"
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO payments (payment_id, user_email, user_name, amount, status, qr_code, qr_code_base64, plan_type, created_at)
+        VALUES (?, ?, ?, ?, 'pending', ?, '', ?, ?)
+    """, (fake_id, email, name, amount, copia_cola, plan_type, now))
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "success",
+        "payment_id": fake_id,
+        "id": fake_id,
+        "qr_code": copia_cola,
+        "qr_code_base64": "",
+        "qr_code_url": qr_img_url,
+        "ticket_url": qr_img_url,
+        "copia_e_cola": copia_cola,
+        "pix_code": copia_cola
+    }
+
+@app.get("/api/v1/payment/status/{payment_id}")
+@app.get("/api/v1/pix/status/{payment_id}")
+@app.get("/api/pix/status/{payment_id}")
+@app.get("/api/payment/status/{payment_id}")
+@app.get("/api/status/{payment_id}")
+def check_pix_status(payment_id: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT status, user_email FROM payments WHERE payment_id = ?", (payment_id,))
+    pay = c.fetchone()
+    conn.close()
+
+    if not pay:
+        return {"status": "pending", "is_approved": False}
+
+    is_approved = pay["status"] == "approved"
+    return {"status": pay["status"], "is_approved": is_approved, "user_email": pay["user_email"]}
+
+@app.get("/api/pix/simulate-approve/{payment_id}")
+def simulate_pix_approval(payment_id: str):
+    now = datetime.utcnow().isoformat()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT user_email FROM payments WHERE payment_id = ?", (payment_id,))
+    pay = c.fetchone()
+    
+    if pay:
+        user_email = pay["user_email"]
+        c.execute("UPDATE payments SET status = 'approved', paid_at = ? WHERE payment_id = ?", (now, payment_id))
+        c.execute("UPDATE users SET is_pro = 1 WHERE email = ?", (user_email.lower().strip(),))
+        conn.commit()
+        conn.close()
+        return {"status": "approved", "message": f"Pagamento {payment_id} aprovado! Conta {user_email} agora é PRO."}
+    
+    conn.close()
+    return {"status": "error", "message": "Pagamento não encontrado."}
+
+@app.post("/api/v1/webhooks/mercadopago")
+@app.post("/webhook/mercadopago")
+async def mercadopago_webhook(request: Request):
+    try:
+        data = await request.json()
+        payment_id = data.get("data", {}).get("id") or data.get("id")
+        if payment_id and MERCADO_PAGO_TOKEN:
+            headers = {"Authorization": f"Bearer {MERCADO_PAGO_TOKEN}"}
+            res = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers, timeout=10)
+            if res.status_code == 200:
+                payment_data = res.json()
+                if payment_data.get("status") == "approved":
+                    user_email = payment_data.get("payer", {}).get("email")
+                    now = datetime.utcnow().isoformat()
+                    
+                    conn = get_db()
+                    c = conn.cursor()
+                    c.execute("UPDATE payments SET status = 'approved', paid_at = ? WHERE payment_id = ?", (now, str(payment_id)))
+                    if user_email:
+                        c.execute("UPDATE users SET is_pro = 1 WHERE email = ?", (user_email.lower().strip(),))
+                    conn.commit()
+                    conn.close()
+        return {"status": "ok"}
+    except Exception:
+        return {"status": "error"}
+
+# ==========================================
+# ROTAS DE GERAÇÃO DE PLANO / IA
 # ==========================================
 @app.post("/api/v1/plan/generate")
+@app.post("/api/v1/nutrition/generate")
+@app.post("/api/v1/generate-plan")
+@app.post("/api/v1/diet/generate")
 @app.post("/api/plan/generate")
+@app.post("/api/nutrition/generate")
 @app.post("/api/generate-plan")
 @app.post("/api/generate_plan")
 @app.post("/api/generate_diet")
 @app.post("/api/generate-diet")
-@app.post("/api/v1/diet/generate")
+@app.post("/api/generate")
 @app.post("/generate-plan")
 async def generate_diet_handler(request: Request):
     try:
@@ -286,7 +461,6 @@ async def generate_diet_handler(request: Request):
     activity = body.get("activity_level") or body.get("nivel_atividade") or "moderado"
     diet_style = body.get("diet_style") or body.get("estilo_dieta") or "equilibrada"
     restrictions = body.get("restrictions") or body.get("restricoes") or []
-    user_email = body.get("user_email") or body.get("email") or ""
 
     tmb, tdee, target_calories = calculate_metabolism(gender, weight, height, age, activity, goal)
 
@@ -342,6 +516,55 @@ async def generate_diet_handler(request: Request):
             print(f"[Gemini Log] {e}")
 
     return generate_fallback_plan(weight, target_calories, goal, diet_style)
+
+# Scanner de Pratos por Imagem (IA)
+@app.post("/api/v1/ai/scan-plate")
+@app.post("/api/v1/scan-plate")
+@app.post("/api/scan-plate")
+@app.post("/api/scan_plate")
+@app.post("/api/ai/scan")
+@app.post("/api/scan")
+async def scan_plate_handler(request: Request):
+    try:
+        body = await request.json()
+        image_base64 = body.get("image_base64") or body.get("image") or ""
+        
+        if GEMINI_API_KEY and image_base64:
+            from google import genai
+            from google.genai import types
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            img_bytes = base64.b64decode(image_base64.split(",")[-1])
+            
+            prompt = """
+            Analise a imagem deste prato e retorne um JSON:
+            {
+              "prato_identificado": "Nome dos alimentos detectados",
+              "calorias_estimadas": 550,
+              "macros": {"proteina_g": 38, "carbo_g": 60, "gordura_g": 12},
+              "alimentos_detectados": ["Frango Grelhado", "Arroz", "Feijão", "Salada"],
+              "recomendacao": "Avaliação nutricional do prato."
+            }
+            """
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[
+                    types.Part.from_bytes(data=img_bytes, mime_type='image/jpeg'),
+                    prompt
+                ],
+                config={'response_mime_type': 'application/json'}
+            )
+            return json.loads(response.text)
+    except Exception:
+        pass
+
+    return {
+        "status": "mock",
+        "prato_identificado": "Prato Tradicional Brasileiro",
+        "calorias_estimadas": 580,
+        "macros": {"proteina_g": 42, "carbo_g": 65, "gordura_g": 14},
+        "alimentos_detectados": ["Arroz", "Feijão", "Frango Grelhado", "Salada Verde"],
+        "recomendacao": "Ótimo equilíbrio entre carboidratos complexos e proteínas magras."
+    }
 
 # ==========================================
 # CAPTURA DE LEADS (QUIZ)
@@ -467,172 +690,6 @@ async def login_handler(request: Request):
         "status": "success",
         "user": {"id": user["id"], "name": user["name"], "email": user["email"], "is_pro": bool(user["is_pro"])}
     }
-
-# ==========================================
-# PAGAMENTO INSTANTÂNEO PIX (BLINDADO)
-# ==========================================
-@app.post("/api/v1/pix/create")
-@app.post("/api/pix/create")
-@app.post("/api/create-pix")
-@app.post("/api/create_pix")
-@app.post("/api/payment/pix")
-@app.post("/api/pix")
-@app.post("/create-pix")
-async def create_pix_handler(request: Request):
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-
-    email = body.get("email") or "cliente@nutricore.app"
-    name = body.get("name") or body.get("nome") or "Cliente NutriCore"
-    amount = float(body.get("amount") or body.get("valor") or 29.90)
-    plan_type = body.get("plan_type") or "pro_annual"
-    now = datetime.utcnow().isoformat()
-
-    # 1. Tentativa Oficial com Mercado Pago
-    if MERCADO_PAGO_TOKEN and len(MERCADO_PAGO_TOKEN) > 15:
-        try:
-            headers = {
-                "Authorization": f"Bearer {MERCADO_PAGO_TOKEN}",
-                "Content-Type": "application/json",
-                "X-Idempotency-Key": str(uuid.uuid4())
-            }
-            first_name = name.split()[0] if name else "Cliente"
-            last_name = name.split()[-1] if len(name.split()) > 1 else "NutriCore"
-            
-            mp_payload = {
-                "transaction_amount": amount,
-                "description": f"NutriCore Pro - {plan_type}",
-                "payment_method_id": "pix",
-                "payer": {
-                    "email": email,
-                    "first_name": first_name,
-                    "last_name": last_name
-                }
-            }
-            
-            res = requests.post("[https://api.mercadopago.com/v1/payments](https://api.mercadopago.com/v1/payments)", headers=headers, json=mp_payload, timeout=10)
-            if res.status_code in [200, 201]:
-                res_data = res.json()
-                tx_data = res_data.get("point_of_interaction", {}).get("transaction_data", {})
-                pay_id = str(res_data.get("id"))
-                qr_code = tx_data.get("qr_code") or ""
-                qr_base64 = tx_data.get("qr_code_base64") or ""
-                qr_url = tx_data.get("ticket_url") or ""
-
-                conn = get_db()
-                c = conn.cursor()
-                c.execute("""
-                    INSERT INTO payments (payment_id, user_email, user_name, amount, status, qr_code, qr_code_base64, plan_type, created_at)
-                    VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-                """, (pay_id, email, name, amount, qr_code, qr_base64, plan_type, now))
-                conn.commit()
-                conn.close()
-
-                return {
-                    "status": "success",
-                    "payment_id": pay_id,
-                    "id": pay_id,
-                    "qr_code": qr_code,
-                    "qr_code_base64": qr_base64,
-                    "qr_code_url": qr_url,
-                    "ticket_url": qr_url,
-                    "copia_e_cola": qr_code
-                }
-            else:
-                print(f"[MercadoPago API Error] Status {res.status_code}: {res.text}")
-        except Exception as e:
-            print(f"[MercadoPago Exception] {e}")
-
-    # 2. Fallback Inteligente (Gera QR Code válido e funcional para testes)
-    fake_id = f"PIX-{int(datetime.utcnow().timestamp())}"
-    copia_cola = f"00020126580014br.gov.bcb.pix0136nutricore-pro-acesso-anual520400005303986540{amount:.2f}5802BR5913NutriCore Pro6009Sao Paulo62070503***6304E2CA"
-    
-    # Gera QR code via serviço público de renderização para garantir imagem sempre visível
-    encoded_qr = urllib.parse.quote(copia_cola)
-    qr_img_url = f"[https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=](https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=){encoded_qr}"
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO payments (payment_id, user_email, user_name, amount, status, qr_code, qr_code_base64, plan_type, created_at)
-        VALUES (?, ?, ?, ?, 'pending', ?, '', ?, ?)
-    """, (fake_id, email, name, amount, copia_cola, plan_type, now))
-    conn.commit()
-    conn.close()
-
-    return {
-        "status": "success",
-        "payment_id": fake_id,
-        "id": fake_id,
-        "qr_code": copia_cola,
-        "qr_code_base64": "",
-        "qr_code_url": qr_img_url,
-        "ticket_url": qr_img_url,
-        "copia_e_cola": copia_cola
-    }
-
-@app.get("/api/v1/pix/status/{payment_id}")
-@app.get("/api/pix/status/{payment_id}")
-@app.get("/api/payment/status/{payment_id}")
-def check_pix_status(payment_id: str):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT status, user_email FROM payments WHERE payment_id = ?", (payment_id,))
-    pay = c.fetchone()
-    conn.close()
-
-    if not pay:
-        return {"status": "pending", "is_approved": False}
-
-    is_approved = pay["status"] == "approved"
-    return {"status": pay["status"], "is_approved": is_approved, "user_email": pay["user_email"]}
-
-@app.get("/api/pix/simulate-approve/{payment_id}")
-def simulate_pix_approval(payment_id: str):
-    now = datetime.utcnow().isoformat()
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT user_email FROM payments WHERE payment_id = ?", (payment_id,))
-    pay = c.fetchone()
-    
-    if pay:
-        user_email = pay["user_email"]
-        c.execute("UPDATE payments SET status = 'approved', paid_at = ? WHERE payment_id = ?", (now, payment_id))
-        c.execute("UPDATE users SET is_pro = 1 WHERE email = ?", (user_email.lower().strip(),))
-        conn.commit()
-        conn.close()
-        return {"status": "approved", "message": f"Pagamento {payment_id} aprovado com sucesso! Conta {user_email} agora é PRO."}
-    
-    conn.close()
-    return {"status": "error", "message": "Pagamento não encontrado."}
-
-@app.post("/api/v1/webhooks/mercadopago")
-@app.post("/webhook/mercadopago")
-async def mercadopago_webhook(request: Request):
-    try:
-        data = await request.json()
-        payment_id = data.get("data", {}).get("id") or data.get("id")
-        if payment_id and MERCADO_PAGO_TOKEN:
-            headers = {"Authorization": f"Bearer {MERCADO_PAGO_TOKEN}"}
-            res = requests.get(f"[https://api.mercadopago.com/v1/payments/](https://api.mercadopago.com/v1/payments/){payment_id}", headers=headers, timeout=10)
-            if res.status_code == 200:
-                payment_data = res.json()
-                if payment_data.get("status") == "approved":
-                    user_email = payment_data.get("payer", {}).get("email")
-                    now = datetime.utcnow().isoformat()
-                    
-                    conn = get_db()
-                    c = conn.cursor()
-                    c.execute("UPDATE payments SET status = 'approved', paid_at = ? WHERE payment_id = ?", (now, str(payment_id)))
-                    if user_email:
-                        c.execute("UPDATE users SET is_pro = 1 WHERE email = ?", (user_email.lower().strip(),))
-                    conn.commit()
-                    conn.close()
-        return {"status": "ok"}
-    except Exception:
-        return {"status": "error"}
 
 # ==========================================
 # PAINEL ADMINISTRATIVO & EXPORTAÇÃO CSV
