@@ -92,6 +92,7 @@ def init_db():
             name TEXT NOT NULL,
             email TEXT NOT NULL,
             phone TEXT NOT NULL,
+            budget_tier TEXT DEFAULT 'economico',
             tmb REAL,
             daily_calories REAL,
             quiz_data_json TEXT,
@@ -111,7 +112,7 @@ def init_db():
         )
     ''')
 
-    # Migração automática de colunas caso o banco já exista
+    # Migração automática de colunas
     def add_col(tabela, col_def):
         col_name = col_def.split()[0]
         c.execute(f"PRAGMA table_info({tabela})")
@@ -123,6 +124,7 @@ def init_db():
                 pass
 
     add_col("users", "is_pro INTEGER DEFAULT 0")
+    add_col("leads", "budget_tier TEXT DEFAULT 'economico'")
     add_col("leads", "tmb REAL")
     add_col("leads", "daily_calories REAL")
     add_col("leads", "quiz_data_json TEXT")
@@ -180,7 +182,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. ENUMS E MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
+# 3. MODELOS PYDANTIC
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -197,6 +199,11 @@ class ObjetivoEnum(str, Enum):
     PERDA_PESO = "perda_peso"
     MANUTENCAO = "manutencao"
     HIPERTROFIA = "hipertrofia"
+
+class OrcamentoEnum(str, Enum):
+    ECONOMICO = "economico"
+    MODERADO = "moderado"
+    PREMIUM = "premium"
 
 class RegisterInput(BaseModel):
     name: str = Field(..., min_length=2)
@@ -222,6 +229,7 @@ class LeadCaptureInput(BaseModel):
     peso_alvo_kg: Optional[float] = 70.0
     nivel_atividade: Optional[str] = "moderado"
     objetivo: Optional[str] = "perda_peso"
+    orcamento: Optional[str] = "economico"
     obstaculo: Optional[str] = "falta_tempo"
     estilo_culinario: Optional[str] = "caseiro_brasil"
 
@@ -243,6 +251,7 @@ class PerfilUsuarioInput(BaseModel):
     altura_cm: float = Field(178.0, gt=90, lt=260)
     nivel_atividade: NivelAtividadeEnum = NivelAtividadeEnum.MODERADO
     objetivo: ObjetivoEnum = ObjetivoEnum.PERDA_PESO
+    orcamento: Optional[OrcamentoEnum] = OrcamentoEnum.ECONOMICO
     ritmo_objetivo: Optional[str] = "moderado"
     preferencia: Optional[str] = "onivoro"
     estilo_culinario: Optional[str] = "caseiro_brasil"
@@ -279,6 +288,7 @@ class DiaPlano(BaseModel):
 class TrocaAlimentoInput(BaseModel):
     refeicao_atual: RefeicaoIA
     motivo_ou_substituto: str = Field(..., min_length=2)
+    orcamento: Optional[str] = "economico"
     preferencia: Optional[str] = "onivoro"
     estilo_culinario: Optional[str] = "caseiro_brasil"
     intolerancias_saude: Optional[List[str]] = []
@@ -297,7 +307,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (REST DIRETO - ZERO DEPENDÊNCIA DE SDK)
+# 4. MOTOR IA GEMINI (REST DIRETO - ALTA RESILIÊNCIA)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -345,7 +355,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     return None
 
 # ==============================================================================
-# 5. CÁLCULOS METABÓLICOS
+# 5. CÁLCULOS METABÓLICOS E FALLBACKS POR ORÇAMENTO
 # ==============================================================================
 
 def calcular_metas(p: PerfilUsuarioInput):
@@ -386,11 +396,169 @@ def calcular_metas(p: PerfilUsuarioInput):
     )
     return round(tmb, 1), round(tdee, 1), round(meta_calorica, 1), macros
 
+def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, macros: Macronutrientes):
+    orcamento_clean = str(orcamento).lower()
+    
+    if orcamento_clean == "premium":
+        return [
+            {
+                "nome_refeicao": "Café da Manhã Gourmet",
+                "titulo_prato": "Omelete de Claras com Queijo de Cabra e Frutas Vermelhas",
+                "horario_sugerido": "07:30",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra/búfala", "100g Mirtilos ou Morangos frescos", "Café espresso"],
+                "modo_preparo": "Prepare a omelete em fogo baixo com azeite trufado ou manteiga ghee.",
+                "dica_chef": "Rico em antioxidantes de alta densidade."
+            },
+            {
+                "nome_refeicao": "Almoço Nobre",
+                "titulo_prato": "Filé de Salmão com Aspargos e Quinoa Real",
+                "horario_sugerido": "12:30",
+                "calorias_alvo": round(meta_calorica * 0.35),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
+                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos e tomatinhos confitados", "Azeite EV"],
+                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos no azeite.",
+                "dica_chef": "Excelente fonte de ômega-3 de cadeia longa EPA/DHA."
+            },
+            {
+                "nome_refeicao": "Lanche da Tarde",
+                "titulo_prato": "Iogurte Grego Artesanal com Castanhas Nobres",
+                "horario_sugerido": "16:30",
+                "calorias_alvo": round(meta_calorica * 0.15),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
+                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas laminadas", "1 colher de Mel cru"],
+                "modo_preparo": "Misture os ingredientes em uma taça.",
+                "dica_chef": "Gorduras monoinsaturadas e saciedade prolongada."
+            },
+            {
+                "nome_refeicao": "Jantar Leve",
+                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha e Brócolis Ninja",
+                "horario_sugerido": "20:00",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ninja ao vapor"],
+                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê aveludado.",
+                "dica_chef": "Proteína de alto valor biológico e ferro heme."
+            }
+        ]
+    elif orcamento_clean == "moderado":
+        return [
+            {
+                "nome_refeicao": "Café da Manhã",
+                "titulo_prato": "Ovos Mexidos com Pão 100% Integral e Banana",
+                "horario_sugerido": "07:30",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média com canela", "Café preto"],
+                "modo_preparo": "Prepare os ovos na frigideira com 1 fio de azeite.",
+                "dica_chef": "Proteína e carboidrato de média absorção."
+            },
+            {
+                "nome_refeicao": "Almoço Equilibrado",
+                "titulo_prato": "Patinho Moído com Arroz Integral e Feijão Carioca",
+                "horario_sugerido": "12:30",
+                "calorias_alvo": round(meta_calorica * 0.35),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
+                "ingredientes": ["150g Patinho bovino moído", "120g Arroz integral", "80g Feijão carioca", "Salada verde com tomate", "Azeite EV"],
+                "modo_preparo": "Refogue o patinho com cebola e alho.",
+                "dica_chef": "Tempere a salada com azeite e limão."
+            },
+            {
+                "nome_refeicao": "Lanche da Tarde",
+                "titulo_prato": "Iogurte Natural Desnatado com Chia e Aveia",
+                "horario_sugerido": "16:30",
+                "calorias_alvo": round(meta_calorica * 0.15),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
+                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de sementes de chia"],
+                "modo_preparo": "Misture tudo em uma tigela.",
+                "dica_chef": "Excelente aporte de fibras solúveis."
+            },
+            {
+                "nome_refeicao": "Jantar Regenerativo",
+                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes ao Vapor",
+                "horario_sugerido": "20:00",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["140g Filé de tilápia grelhado", "100g Batata doce cozida", "Brócolis e cenoura ao vapor"],
+                "modo_preparo": "Grelhe a tilápia com ervas e sirva com os legumes.",
+                "dica_chef": "Digestão rápida para preservar o sono profundo."
+            }
+        ]
+    else:
+        # Padrão: ECONÔMICO (Máximo Custo-Benefício)
+        return [
+            {
+                "nome_refeicao": "Café da Manhã Econômico",
+                "titulo_prato": "Ovos Mexidos com Cuscuz Nordestino e Banana",
+                "horario_sugerido": "07:30",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho hidratado e cozido", "1 Banana prata com canela", "Café preto"],
+                "modo_preparo": "Hidrate e cozinhe o cuscuz no vapor. Prepare os ovos mexidos na frigideira.",
+                "dica_chef": "Custo por refeição de apenas ~R$ 3,50 com proteína completa."
+            },
+            {
+                "nome_refeicao": "Almoço Fortalecedor",
+                "titulo_prato": "Peito ou Coxa de Frango com Arroz Branco, Feijão e Repolho",
+                "horario_sugerido": "12:30",
+                "calorias_alvo": round(meta_calorica * 0.35),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
+                "ingredientes": ["160g Frango desfiado ou grelhado", "130g Arroz branco", "90g Feijão carioca", "Salada farta de repolho ralado e cenoura"],
+                "modo_preparo": "Cozinhe o frango com açafrão, alho e sal. Tempere a salada com vinagre e sal.",
+                "dica_chef": "O feijão com arroz fornece todos os aminoácidos essenciais."
+            },
+            {
+                "nome_refeicao": "Lanche da Tarde",
+                "titulo_prato": "Mingau Prático de Aveia com Banana",
+                "horario_sugerido": "16:30",
+                "calorias_alvo": round(meta_calorica * 0.15),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
+                "ingredientes": ["40g Aveia em flocos", "150ml Água ou leite", "1 Banana amassada", "Canela a gosto"],
+                "modo_preparo": "Leve a aveia com a água e banana amassada ao micro-ondas por 1m30s.",
+                "dica_chef": "Energia limpa e saciedade de baixo custo."
+            },
+            {
+                "nome_refeicao": "Jantar Nutritivo",
+                "titulo_prato": "Omelete de Frango com Mandioca Cozida e Abóbora",
+                "horario_sugerido": "20:00",
+                "calorias_alvo": round(meta_calorica * 0.25),
+                "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
+                "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
+                "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
+                "ingredientes": ["2 Ovos + 60g Frango desfiado (ou Sardinha)", "100g Mandioca/Aipim cozido", "120g Abóbora cabotiá cozida"],
+                "modo_preparo": "Bata os ovos com o frango e faça na frigideira. Sirva com a mandioca e abóbora.",
+                "dica_chef": "A abóbora é rica em betacaroteno e super econômica."
+            }
+        ]
+
 # ==============================================================================
 # 6. APLICAÇÃO FASTAPI E ROTAS
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="11.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="11.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -434,7 +602,7 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# --- CAPTURA DE LEADS (QUIZ) ---
+# --- CAPTURA DE LEADS ---
 
 @app.post("/api/v1/lead/capture")
 @app.post("/api/lead/capture")
@@ -461,18 +629,19 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
 
     imc = lead.peso_kg / ((lead.altura_cm / 100) ** 2)
     agora = datetime.utcnow().isoformat()
+    orcamento_sel = lead.orcamento or "economico"
 
     clean_phone = re.sub(r'\D', '', str(lead.phone))
     if not clean_phone.startswith('55'):
         clean_phone = '55' + clean_phone
-    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto."
+    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto (Perfil {orcamento_sel.upper()}): [https://nutricore-app.onrender.com](https://nutricore-app.onrender.com)"
     wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}"
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute(
-        "INSERT INTO leads (name, email, phone, tmb, daily_calories, quiz_data_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (lead.name.strip(), lead.email.lower().strip(), lead.phone.strip(), round(tmb, 1), round(meta_calorica, 1), json.dumps(lead.dict()), agora)
+        "INSERT INTO leads (name, email, phone, budget_tier, tmb, daily_calories, quiz_data_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (lead.name.strip(), lead.email.lower().strip(), lead.phone.strip(), orcamento_sel, round(tmb, 1), round(meta_calorica, 1), json.dumps(lead.dict()), agora)
     )
     conn.commit()
     conn.close()
@@ -484,10 +653,11 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
         "daily_calories": round(meta_calorica, 0),
         "meta_calorica": round(meta_calorica, 0),
         "imc": round(imc, 1),
+        "budget_tier": orcamento_sel,
         "estimated_weeks": semanas_estimadas,
         "semanas_estimadas": semanas_estimadas,
         "recovery_whatsapp_url": wpp_url,
-        "mensagem_personalizada": f"Com base na sua rotina e metabolismo, identificamos um potencial de transformação corporal em {semanas_estimadas} semanas."
+        "mensagem_personalizada": f"Diagnóstico pronto! Estratégia calculada para o orçamento {orcamento_sel.upper()} com meta em {semanas_estimadas} semanas."
     }
 
 # --- AUTENTICAÇÃO ---
@@ -843,11 +1013,16 @@ async def criar_plano(request: Request):
     altura_cm = float(raw_body.get("altura_cm") or raw_body.get("altura") or raw_body.get("height") or 178.0)
     atividade = str(raw_body.get("nivel_atividade") or raw_body.get("activity_level") or "moderado")
     objetivo = str(raw_body.get("objetivo") or raw_body.get("goal") or "perda_peso")
+    orcamento = str(raw_body.get("orcamento") or raw_body.get("budget_tier") or "economico").lower()
     dias_plano = int(raw_body.get("dias_plano") or raw_body.get("days") or 1)
     refeicoes_por_dia = int(raw_body.get("refeicoes_por_dia") or raw_body.get("meals_count") or 4)
     estilo_culinario = str(raw_body.get("estilo_culinario") or raw_body.get("diet_style") or "caseiro_brasil")
     preferencia = str(raw_body.get("preferencia") or "onivoro")
     restricoes = raw_body.get("intolerancias_saude") or raw_body.get("restrictions") or []
+
+    orcamento_enum = OrcamentoEnum.PREMIUM if "prem" in orcamento or "gourmet" in orcamento else (
+        OrcamentoEnum.MODERADO if "mod" in orcamento or "equil" in orcamento else OrcamentoEnum.ECONOMICO
+    )
 
     perfil = PerfilUsuarioInput(
         idade=idade,
@@ -856,6 +1031,7 @@ async def criar_plano(request: Request):
         altura_cm=altura_cm,
         nivel_atividade=NivelAtividadeEnum.SEDENTARIO if "sedent" in atividade else (NivelAtividadeEnum.INTENSO if "inten" in atividade else NivelAtividadeEnum.MODERADO),
         objetivo=ObjetivoEnum.HIPERTROFIA if "hiper" in objetivo or "ganho" in objetivo else (ObjetivoEnum.MANUTENCAO if "manut" in objetivo else ObjetivoEnum.PERDA_PESO),
+        orcamento=orcamento_enum,
         refeicoes_por_dia=max(3, min(6, refeicoes_por_dia)),
         dias_plano=max(1, min(30, dias_plano)),
         gemini_api_key=raw_body.get("gemini_api_key")
@@ -864,69 +1040,59 @@ async def criar_plano(request: Request):
     tmb, tdee, meta_calorica, macros = calcular_metas(perfil)
     api_key = obter_chave(perfil.gemini_api_key)
 
+    diretrizes_orcamento = {
+        "economico": (
+            "DIRETRIZ FINANCEIRA: ORÇAMENTO ECONÔMICO (BAIXA RENDA / R$ 12-18/dia). "
+            "Utilize APENAS proteínas de altíssimo custo-benefício (ovos caipiras, peito/coxa de frango, sardinha fresca ou em lata, moela/fígado). "
+            "Carboidratos base: arroz branco/integral, feijão, aveia em flocos, banana prata, mandioca, cuscuz de milho. "
+            "Vegetais: repolho, cenoura, abóbora, chuchu. PROIBIDO prescrever salmão, queijos caros ou farinhas nobres."
+        ),
+        "moderado": (
+            "DIRETRIZ FINANCEIRA: ORÇAMENTO MODERADO (MÉDIA RENDA / R$ 22-35/dia). "
+            "Equilíbrio entre custo e conveniência. Proteínas: patinho moído, filé de tilápia, peito de frango, queijo minas, iogurte natural. "
+            "Carboidratos e gorduras: arroz integral, batata-doce, sementes de chia, azeite extra virgem e frutas da estação."
+        ),
+        "premium": (
+            "DIRETRIZ FINANCEIRA: ORÇAMENTO PREMIUM / GOURMET (ALTA RENDA / R$ 45+/dia). "
+            "Priorize máxima sofisticação e conveniência. Proteínas: salmão fresco, filé mignon, camarão, queijo de cabra, iogurte grego artesanal. "
+            "Carboidratos e gorduras: quinoa real, aspargos, mirtilos/framboesas, amêndoas, nozes e azeite trufado."
+        )
+    }
+
+    instrucao_orcamento = diretrizes_orcamento.get(perfil.orcamento.value, diretrizes_orcamento["economico"])
+
     prompt = f"""
     Atue como nutricionista clínico avançado e elabore um plano alimentar completo para {perfil.dias_plano} dia(s).
     
-    Retorne estritamente um JSON no formato:
+    METAS NUTRICIONAIS:
+    - Calorias Alvo: ~{meta_calorica} kcal | Macros: {macros.proteinas_g}g Proteína, {macros.carboidratos_g}g Carbo, {macros.gorduras_g}g Gordura.
+    - {instrucao_orcamento}
+    - Preferência: {preferencia} | Estilo Culinário: {estilo_culinario}.
+    - Condições/Restrições: {', '.join(restricoes) if restricoes else 'Nenhuma'}.
+
+    Retorne estritamente um JSON puro no formato:
     {{
       "dias": [
         {{
           "dia": 1,
-          "titulo_dia": "Dia 1 - Foco em Energia & Saciedade",
+          "titulo_dia": "Dia 1 - Plano {perfil.orcamento.value.capitalize()}",
           "refeicoes": [
             {{
               "nome_refeicao": "Café da Manhã",
-              "titulo_prato": "Ovos Mexidos com Aveia e Fruta",
+              "titulo_prato": "Nome do Prato",
               "horario_sugerido": "07:30",
               "calorias_alvo": {round(meta_calorica * 0.25)},
               "proteinas_refeicao_g": {round(macros.proteinas_g * 0.25)},
               "carboidratos_refeicao_g": {round(macros.carboidratos_g * 0.25)},
               "gorduras_refeicao_g": {round(macros.gorduras_g * 0.25)},
-              "ingredientes": ["3 ovos", "30g de farelo de aveia", "1 banana prata"],
-              "modo_preparo": "Bata os ovos e prepare na frigideira. Sirva com banana e aveia.",
-              "dica_chef": "Adicione canela para saciedade."
-            }},
-            {{
-              "nome_refeicao": "Almoço",
-              "titulo_prato": "Frango Grelhado com Arroz Integral e Feijão",
-              "horario_sugerido": "12:30",
-              "calorias_alvo": {round(meta_calorica * 0.35)},
-              "proteinas_refeicao_g": {round(macros.proteinas_g * 0.35)},
-              "carboidratos_refeicao_g": {round(macros.carboidratos_g * 0.35)},
-              "gorduras_refeicao_g": {round(macros.gorduras_g * 0.35)},
-              "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde"],
-              "modo_preparo": "Grelhe o frango com temperos naturais.",
-              "dica_chef": "Azeite extravirgem cru por cima."
-            }},
-            {{
-              "nome_refeicao": "Lanche da Tarde",
-              "titulo_prato": "Iogurte com Frutas e Chia",
-              "horario_sugerido": "16:30",
-              "calorias_alvo": {round(meta_calorica * 0.15)},
-              "proteinas_refeicao_g": {round(macros.proteinas_g * 0.15)},
-              "carboidratos_refeicao_g": {round(macros.carboidratos_g * 0.15)},
-              "gorduras_refeicao_g": {round(macros.gorduras_g * 0.15)},
-              "ingredientes": ["1 pote iogurte natural", "1 colher chia", "Morangos"],
-              "modo_preparo": "Misture tudo em uma tigela.",
-              "dica_chef": "Rico em probióticos e fibras."
-            }},
-            {{
-              "nome_refeicao": "Jantar",
-              "titulo_prato": "Peixe com Legumes ao Vapor e Batata Doce",
-              "horario_sugerido": "20:00",
-              "calorias_alvo": {round(meta_calorica * 0.25)},
-              "proteinas_refeicao_g": {round(macros.proteinas_g * 0.25)},
-              "carboidratos_refeicao_g": {round(macros.carboidratos_g * 0.25)},
-              "gorduras_refeicao_g": {round(macros.gorduras_g * 0.25)},
-              "ingredientes": ["140g tilápia", "100g batata doce", "Brócolis e cenoura"],
-              "modo_preparo": "Asse o peixe e cozinhe os legumes no vapor.",
-              "dica_chef": "Refeição leve para uma boa noite de sono."
+              "ingredientes": ["Ingrediente 1", "Ingrediente 2"],
+              "modo_preparo": "Instruções de preparo.",
+              "dica_chef": "Dica nutricional ou de economia."
             }}
           ]
         }}
       ]
     }}
-    Retorne APENAS o JSON puro.
     """
 
     resultado_json = executar_chamada_ia(prompt, api_key)
@@ -937,7 +1103,7 @@ async def criar_plano(request: Request):
         elif isinstance(resultado_json, dict) and "dias" in resultado_json:
             lista_dias_raw = resultado_json["dias"]
         else:
-            lista_dias_raw = [{"dia": 1, "titulo_dia": "Dia 1 - Plano NutriCore", "refeicoes": resultado_json.get("refeicoes", [])}]
+            lista_dias_raw = [{"dia": 1, "titulo_dia": f"Dia 1 - Plano {perfil.orcamento.value.capitalize()}", "refeicoes": resultado_json.get("refeicoes", [])}]
 
         dias_objs = []
         for item in lista_dias_raw:
@@ -953,6 +1119,7 @@ async def criar_plano(request: Request):
             "tdee": tdee,
             "meta_calorica": meta_calorica,
             "calorias_totais": meta_calorica,
+            "budget_tier": perfil.orcamento.value,
             "macros": macros.dict(),
             "dias_total": len(dias_objs),
             "dias": [d.dict() for d in dias_objs],
@@ -961,12 +1128,8 @@ async def criar_plano(request: Request):
             "cardapio": [r.dict() for r in primeiro_dia_refeicoes]
         }
 
-    default_refeicoes = [
-        {"nome_refeicao": "Café da Manhã", "titulo_prato": "Ovos Mexidos com Aveia e Fruta", "horario_sugerido": "07:30", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["3 ovos inteiros", "30g farelo de aveia", "1 banana"], "modo_preparo": "Mexa os ovos na frigideira com fio de azeite.", "dica_chef": "Consuma proteínas pela manhã."},
-        {"nome_refeicao": "Almoço", "titulo_prato": "Peito de Frango com Arroz Integral e Feijão", "horario_sugerido": "12:30", "calorias_alvo": round(meta_calorica * 0.35), "proteinas_refeicao_g": round(macros.proteinas_g * 0.35), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35), "gorduras_refeicao_g": round(macros.gorduras_g * 0.35), "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde"], "modo_preparo": "Grelhe o frango com ervas finas.", "dica_chef": "Tempere a salada com azeite e limão."},
-        {"nome_refeicao": "Lanche da Tarde", "titulo_prato": "Iogurte Natural com Sementes de Chia", "horario_sugerido": "16:30", "calorias_alvo": round(meta_calorica * 0.15), "proteinas_refeicao_g": round(macros.proteinas_g * 0.15), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15), "gorduras_refeicao_g": round(macros.gorduras_g * 0.15), "ingredientes": ["170g iogurte natural desnatado", "1 colher de chia", "Morangos frescos"], "modo_preparo": "Misture os ingredientes.", "dica_chef": "Excelente fonte de cálcio e fibras."},
-        {"nome_refeicao": "Jantar", "titulo_prato": "Filé de Tilápia com Legumes e Batata Doce", "horario_sugerido": "20:00", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["140g tilápia grelhada", "100g batata doce", "Brócolis e cenoura"], "modo_preparo": "Grelhe a tilápia e sirva com legumes.", "dica_chef": "Refeição de rápida digestão para o sono."}
-    ]
+    # Fallback determinístico clínico por orçamento
+    default_refeicoes = gerar_cardapio_fallback_por_orcamento(perfil.orcamento.value, meta_calorica, macros)
 
     return {
         "status": "success",
@@ -974,9 +1137,10 @@ async def criar_plano(request: Request):
         "tdee": tdee,
         "meta_calorica": meta_calorica,
         "calorias_totais": meta_calorica,
+        "budget_tier": perfil.orcamento.value,
         "macros": macros.dict(),
         "dias_total": 1,
-        "dias": [{"dia": 1, "titulo_dia": "Dia 1 - Plano Principal", "refeicoes": default_refeicoes}],
+        "dias": [{"dia": 1, "titulo_dia": f"Dia 1 - Plano {perfil.orcamento.value.capitalize()}", "refeicoes": default_refeicoes}],
         "refeicoes": default_refeicoes,
         "meals": default_refeicoes,
         "cardapio": default_refeicoes
@@ -997,13 +1161,13 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
     user = get_user_by_token(authorization)
     user_id = user["id"] if user else None
 
-    protocol_text = body.get("protocol_text") or body.get("protocolo") or body.get("text") or body.get("dieta") or "Protocolo alimentar padrão com divisão proteica."
+    protocol_text = body.get("protocol_text") or body.get("protocolo") or body.get("text") or body.get("dieta") or "Protocolo alimentar com divisão proteica e carboidratos."
     goal = body.get("goal") or body.get("objetivo") or "emagrecimento e definição"
     weight = float(body.get("weight") or body.get("peso") or 75.0)
 
     prompt = f"""
     Você é um nutricionista clínico esportivo e avaliador metabólico.
-    Analise o seguinte protocolo alimentar: \"{protocol_text}\" (Paciente: {weight}kg, Objetivo: {goal}).
+    Analise o seguinte protocolo: \"{protocol_text}\" (Paciente: {weight}kg, Objetivo: {goal}).
     Retorne OBRIGATORIAMENTE um JSON puro com:
     {{
       "status_avaliacao": "Protocolo Otimizado",
@@ -1039,7 +1203,7 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
             "pontuacao_geral": 92,
             "pontuacao": 92,
             "score": 92,
-            "resumo_executivo": f"O protocolo analisado atende com rigor científico os requisitos para o objetivo de {goal}.",
+            "resumo_executivo": f"O protocolo analisado atende com rigor científico os requisitos para {goal}.",
             "balanco_calorico_estimado": "Déficit Calórico Controlado (-400 kcal)",
             "distribuicao_macros": {
                 "proteinas": f"Aprox. {round(weight * 2.0)}g/dia",
@@ -1081,7 +1245,7 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
 def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
     api_key = obter_chave(dados.gemini_api_key)
     prompt = f"""
-    Substitua o alimento mantendo a equivalência calórica e de macros para:
+    Substitua o alimento mantendo a equivalência calórica e de macros considerando orçamento {dados.orcamento} para:
     Refeição: {dados.refeicao_atual.nome_refeicao} | Calorias: {dados.refeicao_atual.calorias_alvo} kcal.
     Pedido: "{dados.motivo_ou_substituto}".
     Retorne estritamente um JSON no schema da refeição.
@@ -1168,15 +1332,16 @@ def export_leads_csv(senha: str = ""):
         leads = []
     conn.close()
 
-    csv_content = "ID;Nome;Email;WhatsApp;Calorias Meta;Data Criacao\n"
+    csv_content = "ID;Nome;Email;WhatsApp;Faixa Orcamento;Calorias Meta;Data Criacao\n"
     for l in leads:
         lead_id = l.get('id', '')
         name = l.get('name', '')
         email = l.get('email', '')
         phone = l.get('phone', '')
+        budget = l.get('budget_tier', 'economico')
         cals = l.get('daily_calories') or ''
         created_at = l.get('created_at', '')
-        csv_content += f"{lead_id};{name};{email};{phone};{cals};{created_at}\n"
+        csv_content += f"{lead_id};{name};{email};{phone};{budget};{cals};{created_at}\n"
 
     return Response(
         content=csv_content,
@@ -1264,7 +1429,8 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
             clean_phone = '55' + clean_phone
         
         lead_name = l.get('name', 'Lead')
-        msg = f"Olá {lead_name}, tudo bem? Vi seu diagnóstico metabólico no NutriCore Pro. Gostaria de tirar alguma dúvida sobre o plano?"
+        budget_name = str(l.get('budget_tier', 'economico')).capitalize()
+        msg = f"Olá {lead_name}, tudo bem? Vi seu diagnóstico metabólico no NutriCore Pro (Perfil {budget_name}). Gostaria de tirar alguma dúvida sobre o plano?"
         wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}" if clean_phone else "#"
         cals = l.get('daily_calories') or '-'
         created_at_val = str(l.get('created_at', ''))[:16].replace('T', ' ')
@@ -1279,6 +1445,7 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
                     💬 {l.get('phone', '-')}
                 </a>
             </td>
+            <td style="padding: 12px;"><span style="background: #1e293b; color: #34d399; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">{budget_name}</span></td>
             <td style="padding: 12px; color: #38bdf8; font-weight: bold;">{cals} kcal</td>
             <td style="padding: 12px; color: #9ca3af; font-size: 0.85rem;">{created_at_val}</td>
         </tr>
@@ -1310,7 +1477,7 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
             <div class="header">
                 <div>
                     <h1 style="margin: 0; font-size: 1.8rem;">🚀 Painel Executivo de Vendas</h1>
-                    <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 0.9rem;">Leads em tempo real e links rápidos de fechamento no WhatsApp.</p>
+                    <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 0.9rem;">Leads em tempo real com filtro de orçamento e WhatsApp.</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <a href="/admin/export/leads.csv?senha={param_senha}" class="btn-csv">📥 Baixar Planilha CSV</a>
@@ -1345,12 +1512,13 @@ async def admin_portal(request: Request, senha: Optional[str] = None):
                             <th>Nome</th>
                             <th>E-mail</th>
                             <th>Recuperação WhatsApp</th>
+                            <th>Orçamento</th>
                             <th>Meta Calórica</th>
                             <th>Data/Hora</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rows if rows else '<tr><td colspan="6" style="padding: 30px; text-align: center; color: #9ca3af;">Nenhum lead registrado no banco.</td></tr>'}
+                        {rows if rows else '<tr><td colspan="7" style="padding: 30px; text-align: center; color: #9ca3af;">Nenhum lead registrado no banco.</td></tr>'}
                     </tbody>
                 </table>
             </div>
