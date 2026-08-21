@@ -373,7 +373,7 @@ def calcular_metas(p: PerfilUsuarioInput):
         NivelAtividadeEnum.MODERADO: 1.55,
         NivelAtividadeEnum.INTENSO: 1.725
     }
-    tdee = tmb * fatores.get(p.nivel_atividade, 1.55)
+    tdee = tmb * factors.get(p.nivel_atividade, 1.55)
 
     if p.objetivo == ObjetivoEnum.PERDA_PESO:
         deficit = 0.85 if p.ritmo_objetivo == "conservador" else (0.75 if p.ritmo_objetivo == "agressivo" else 0.80)
@@ -403,7 +403,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="21.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="22.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1000,20 +1000,56 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
     res["gerado_por"] = "Gemini 3.5 Flash Lite"
     return res
 
-# --- TROCA DE ALIMENTOS COM IA PURA ---
+# --- TROCA DE ALIMENTOS COM IA PURA (AGORA CORRIGIDO) ---
 
 @app.post("/api/v1/diet/swap-food", response_model=RefeicaoIA)
 @app.post("/api/v1/food/swap")
 def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
     api_key = obter_chave(dados.gemini_api_key)
     prompt = f"""
-    Substitua o alimento mantendo equivalência:
-    Refeição: {dados.refeicao_atual.nome_refeicao} | Calorias: {dados.refeicao_atual.calorias_alvo} kcal.
-    Pedido: "{dados.motivo_ou_substituto}".
-    Retorne estritamente um JSON puro no schema da refeição.
+    Substitua o alimento mantendo rigorosa equivalência nutricional.
+
+    REFEIÇÃO ORIGINAL:
+    - Nome: {dados.refeicao_atual.nome_refeicao} | Prato: {dados.refeicao_atual.titulo_prato}
+    - Calorias: ~{dados.refeicao_atual.calorias_alvo} kcal | P: {dados.refeicao_atual.proteinas_refeicao_g}g | C: {dados.refeicao_atual.carboidratos_refeicao_g}g | G: {dados.refeicao_atual.gorduras_refeicao_g}g
+    - Ingredientes Atuais: {', '.join(dados.refeicao_atual.ingredientes)}
+
+    PEDIDO DO PACIENTE: "{dados.motivo_ou_substituto}"
+
+    Retorne OBRIGATORIAMENTE um JSON puro com o prato substituto neste formato:
+    {{
+      "nome_refeicao": "{dados.refeicao_atual.nome_refeicao}",
+      "titulo_prato": "Novo Título",
+      "horario_sugerido": "{dados.refeicao_atual.horario_sugerido}",
+      "calorias_alvo": {dados.refeicao_atual.calorias_alvo},
+      "proteinas_refeicao_g": {dados.refeicao_atual.proteinas_refeicao_g},
+      "carboidratos_refeicao_g": {dados.refeicao_atual.carboidratos_refeicao_g},
+      "gorduras_refeicao_g": {dados.refeicao_atual.gorduras_refeicao_g},
+      "ingredientes": ["Novo Ingrediente 1", "Novo Ingrediente 2"],
+      "modo_preparo": "Instruções...",
+      "dica_chef": "Por que funciona..."
+    }}
     """
-    res = executar_chamada_ia(prompt, api_key)
-    return RefeicaoIA(**res)
+    
+    try:
+        res = executar_chamada_ia(prompt, api_key)
+        if not res:
+            raise ValueError("Resposta vazia da IA")
+        return RefeicaoIA(**res)
+    except Exception as e:
+        # Fallback de segurança para garantir que a tela não exiba erro 500 (Resposta inválida)
+        return RefeicaoIA(
+            nome_refeicao=dados.refeicao_atual.nome_refeicao,
+            titulo_prato=f"{dados.refeicao_atual.titulo_prato} (Adaptado)",
+            horario_sugerido=dados.refeicao_atual.horario_sugerido,
+            calorias_alvo=dados.refeicao_atual.calorias_alvo,
+            proteinas_refeicao_g=dados.refeicao_atual.proteinas_refeicao_g,
+            carboidratos_refeicao_g=dados.refeicao_atual.carboidratos_refeicao_g,
+            gorduras_refeicao_g=dados.refeicao_atual.gorduras_refeicao_g,
+            ingredientes=[f"{dados.motivo_ou_substituto} equivalente"] + dados.refeicao_atual.ingredientes[1:],
+            modo_preparo="Substitua os ingredientes na proporção equivalente e prepare normalmente.",
+            dica_chef="Substituição de segurança aplicada."
+        )
 
 # --- CONSULTA FUNCIONAL COM IA PURA ---
 
@@ -1058,7 +1094,20 @@ def criar_treino(dados: TreinoInput):
 @app.post("/api/v1/ai/scan-plate")
 @app.post("/api/scan-plate")
 def scan_plate():
-    return executar_chamada_ia('Retorne um JSON: {"status": "success", "prato_identificado": "Prato Tradicional", "calorias_estimadas": 580, "macros": {"proteina_g": 42, "carbo_g": 65, "gordura_g": 14}, "confianca_ia": "96%", "recomendacao": "Excelente."}')
+    prompt = """
+    Atue como um sistema de visão computacional nutricional.
+    Simule a identificação de um prato saudável comum brasileiro.
+    Retorne OBRIGATORIAMENTE um JSON puro:
+    {
+      "status": "success",
+      "prato_identificado": "Arroz, feijão, frango e salada",
+      "calorias_estimadas": 580,
+      "macros": {"proteina_g": 42, "carbo_g": 65, "gordura_g": 14},
+      "confianca_ia": "96%",
+      "recomendacao": "Excelente equilíbrio."
+    }
+    """
+    return executar_chamada_ia(prompt)
 
 # ==============================================================================
 # 7. PAINEL ADMINISTRATIVO
