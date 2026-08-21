@@ -32,6 +32,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
+    # 1. Usuários e Assinatura
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +48,7 @@ def init_db():
         )
     ''')
     
+    # 2. Sessões
     c.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             token TEXT PRIMARY KEY,
@@ -56,6 +58,7 @@ def init_db():
         )
     ''')
     
+    # 3. Dados Sincronizados do Usuário
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_data (
             user_id INTEGER PRIMARY KEY,
@@ -66,6 +69,7 @@ def init_db():
         )
     ''')
     
+    # 4. Pedidos e Pagamentos Pix
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +85,7 @@ def init_db():
         )
     ''')
     
+    # 5. Funil de Leads do Quiz
     c.execute('''
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,6 +99,7 @@ def init_db():
         )
     ''')
 
+    # 6. Protocolos Analisados
     c.execute('''
         CREATE TABLE IF NOT EXISTS protocols (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,6 +111,7 @@ def init_db():
         )
     ''')
 
+    # Migração automática de colunas caso o banco já exista
     def add_col(tabela, col_def):
         col_name = col_def.split()[0]
         c.execute(f"PRAGMA table_info({tabela})")
@@ -173,7 +180,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. MODELOS PYDANTIC
+# 3. ENUMS E MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -290,7 +297,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA (FALLBACK RESILIENTE)
+# 4. MOTOR IA GEMINI (REST DIRETO - ZERO DEPENDÊNCIA DE SDK)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -335,28 +342,6 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
             except Exception:
                 time.sleep(0.3)
                 continue
-
-    try:
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=key)
-        for modelo in MODELOS_ATIVOS:
-            try:
-                response = client.models.generate_content(
-                    model=modelo,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.7
-                    )
-                )
-                if response and response.text:
-                    return extrair_json_seguro(response.text)
-            except Exception:
-                continue
-    except Exception:
-        pass
-
     return None
 
 # ==============================================================================
@@ -405,7 +390,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. APLICAÇÃO FASTAPI E ROTAS
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="10.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="11.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -449,7 +434,7 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# --- CAPTURA DE LEADS ---
+# --- CAPTURA DE LEADS (QUIZ) ---
 
 @app.post("/api/v1/lead/capture")
 @app.post("/api/lead/capture")
