@@ -32,7 +32,7 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # 1. Usuários e Assinatura
+    # 1. Usuários
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +58,7 @@ def init_db():
         )
     ''')
     
-    # 3. Dados Sincronizados do Usuário
+    # 3. Dados Sincronizados
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_data (
             user_id INTEGER PRIMARY KEY,
@@ -69,7 +69,7 @@ def init_db():
         )
     ''')
     
-    # 4. Pedidos e Pagamentos Pix
+    # 4. Pedidos Pix
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +85,7 @@ def init_db():
         )
     ''')
     
-    # 5. Funil de Leads do Quiz
+    # 5. Leads do Quiz
     c.execute('''
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +112,7 @@ def init_db():
         )
     ''')
 
-    # Migração automática de colunas
+    # Migrações automáticas de colunas
     def add_col(tabela, col_def):
         col_name = col_def.split()[0]
         c.execute(f"PRAGMA table_info({tabela})")
@@ -182,7 +182,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. MODELOS PYDANTIC
+# 3. MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -307,7 +307,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (REST DIRETO - ALTA RESILIÊNCIA)
+# 4. MOTOR IA GEMINI (REST DIRETO - ALTA ESTABILIDADE)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -410,7 +410,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
                 "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra/búfala", "100g Mirtilos ou Morangos frescos", "Café espresso"],
-                "modo_preparo": "Prepare a omelete em fogo baixo com azeite trufado ou manteiga ghee.",
+                "modo_preparo": "Prepare a omelete em fogo baixo com manteiga ghee.",
                 "dica_chef": "Rico em antioxidantes de alta densidade."
             },
             {
@@ -422,8 +422,8 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
                 "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos e tomatinhos confitados", "Azeite EV"],
-                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos no azeite.",
-                "dica_chef": "Excelente fonte de ômega-3 de cadeia longa EPA/DHA."
+                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos.",
+                "dica_chef": "Excelente fonte de ômega-3 EPA/DHA."
             },
             {
                 "nome_refeicao": "Lanche da Tarde",
@@ -433,19 +433,19 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas laminadas", "1 colher de Mel cru"],
+                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas laminadas", "1 colher de Mel"],
                 "modo_preparo": "Misture os ingredientes em uma taça.",
                 "dica_chef": "Gorduras monoinsaturadas e saciedade prolongada."
             },
             {
                 "nome_refeicao": "Jantar Leve",
-                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha e Brócolis Ninja",
+                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha e Brócolis",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ninja ao vapor"],
+                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ao vapor"],
                 "modo_preparo": "Sele o mignon ao ponto e sirva com o purê aveludado.",
                 "dica_chef": "Proteína de alto valor biológico e ferro heme."
             }
@@ -454,7 +454,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
         return [
             {
                 "nome_refeicao": "Café da Manhã",
-                "titulo_prato": "Ovos Mexidos com Pão 100% Integral e Banana",
+                "titulo_prato": "Ovos Mexidos com Pão Integral e Banana",
                 "horario_sugerido": "07:30",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
@@ -472,7 +472,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
-                "ingredientes": ["150g Patinho bovino moído", "120g Arroz integral", "80g Feijão carioca", "Salada verde com tomate", "Azeite EV"],
+                "ingredientes": ["150g Patinho moído", "120g Arroz integral", "80g Feijão carioca", "Salada verde com tomate", "Azeite EV"],
                 "modo_preparo": "Refogue o patinho com cebola e alho.",
                 "dica_chef": "Tempere a salada com azeite e limão."
             },
@@ -496,8 +496,8 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["140g Filé de tilápia grelhado", "100g Batata doce cozida", "Brócolis e cenoura ao vapor"],
-                "modo_preparo": "Grelhe a tilápia com ervas e sirva com os legumes.",
+                "ingredientes": ["140g Tilápia grelhada", "100g Batata doce cozida", "Brócolis e cenoura ao vapor"],
+                "modo_preparo": "Grelhe a tilápia com ervas finas.",
                 "dica_chef": "Digestão rápida para preservar o sono profundo."
             }
         ]
@@ -512,21 +512,21 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho hidratado e cozido", "1 Banana prata com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho cozido", "1 Banana prata com canela", "Café preto"],
                 "modo_preparo": "Hidrate e cozinhe o cuscuz no vapor. Prepare os ovos mexidos na frigideira.",
                 "dica_chef": "Custo por refeição de apenas ~R$ 3,50 com proteína completa."
             },
             {
                 "nome_refeicao": "Almoço Fortalecedor",
-                "titulo_prato": "Peito ou Coxa de Frango com Arroz Branco, Feijão e Repolho",
+                "titulo_prato": "Frango com Arroz Branco, Feijão e Repolho",
                 "horario_sugerido": "12:30",
                 "calorias_alvo": round(meta_calorica * 0.35),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
-                "ingredientes": ["160g Frango desfiado ou grelhado", "130g Arroz branco", "90g Feijão carioca", "Salada farta de repolho ralado e cenoura"],
-                "modo_preparo": "Cozinhe o frango com açafrão, alho e sal. Tempere a salada com vinagre e sal.",
-                "dica_chef": "O feijão com arroz fornece todos os aminoácidos essenciais."
+                "ingredientes": ["160g Frango desfiado ou grelhado", "130g Arroz branco", "90g Feijão carioca", "Salada de repolho e cenoura"],
+                "modo_preparo": "Cozinhe o frango com temperos naturais. Tempere a salada com vinagre e sal.",
+                "dica_chef": "Feijão com arroz fornece todos os aminoácidos essenciais."
             },
             {
                 "nome_refeicao": "Lanche da Tarde",
@@ -537,7 +537,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
                 "ingredientes": ["40g Aveia em flocos", "150ml Água ou leite", "1 Banana amassada", "Canela a gosto"],
-                "modo_preparo": "Leve a aveia com a água e banana amassada ao micro-ondas por 1m30s.",
+                "modo_preparo": "Leve a aveia com água e banana ao micro-ondas por 1m30s.",
                 "dica_chef": "Energia limpa e saciedade de baixo custo."
             },
             {
@@ -548,17 +548,17 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["2 Ovos + 60g Frango desfiado (ou Sardinha)", "100g Mandioca/Aipim cozido", "120g Abóbora cabotiá cozida"],
+                "ingredientes": ["2 Ovos + 60g Frango desfiado (ou Sardinha)", "100g Mandioca cozida", "120g Abóbora cozida"],
                 "modo_preparo": "Bata os ovos com o frango e faça na frigideira. Sirva com a mandioca e abóbora.",
                 "dica_chef": "A abóbora é rica em betacaroteno e super econômica."
             }
         ]
 
 # ==============================================================================
-# 6. APLICAÇÃO FASTAPI E ROTAS
+# 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="11.5.0")
+app = FastAPI(title="NutriCore Pro Engine", version="12.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -602,7 +602,7 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# --- CAPTURA DE LEADS ---
+# --- CAPTURA DE LEADS (QUIZ) ---
 
 @app.post("/api/v1/lead/capture")
 @app.post("/api/lead/capture")
@@ -634,7 +634,7 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
     clean_phone = re.sub(r'\D', '', str(lead.phone))
     if not clean_phone.startswith('55'):
         clean_phone = '55' + clean_phone
-    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto (Perfil {orcamento_sel.upper()}): [https://nutricore-app.onrender.com](https://nutricore-app.onrender.com)"
+    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto."
     wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}"
 
     conn = sqlite3.connect(DB_PATH)
@@ -656,8 +656,7 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
         "budget_tier": orcamento_sel,
         "estimated_weeks": semanas_estimadas,
         "semanas_estimadas": semanas_estimadas,
-        "recovery_whatsapp_url": wpp_url,
-        "mensagem_personalizada": f"Diagnóstico pronto! Estratégia calculada para o orçamento {orcamento_sel.upper()} com meta em {semanas_estimadas} semanas."
+        "recovery_whatsapp_url": wpp_url
     }
 
 # --- AUTENTICAÇÃO ---
@@ -944,57 +943,6 @@ async def simular_aprovacao_sem_id(request: Request, authorization: Optional[str
         "message": "Simulação de teste concluída com sucesso! Acesso PRO liberado."
     }
 
-# --- SINCRONIZAÇÃO NUVEM ---
-
-@app.get("/api/v1/user/sync-data")
-def obter_dados_usuario(authorization: Optional[str] = Header(None)):
-    user = get_user_by_token(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Sessão expirada.")
-    
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
-    row = c.fetchone()
-    conn.close()
-
-    if not row:
-        return {"profile": None, "diet": None, "evolution": None}
-    
-    return {
-        "profile": json.loads(row[0]) if row[0] else None,
-        "diet": json.loads(row[1]) if row[1] else None,
-        "evolution": json.loads(row[2]) if row[2] else None
-    }
-
-@app.post("/api/v1/user/sync-data")
-def salvar_dados_usuario(dados: UserDataSyncInput, authorization: Optional[str] = Header(None)):
-    user = get_user_by_token(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Sessão expirada.")
-
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
-    row = c.fetchone()
-
-    p_json = json.dumps(dados.profile) if dados.profile is not None else (row[0] if row else None)
-    d_json = json.dumps(dados.diet) if dados.diet is not None else (row[1] if row else None)
-    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row[2] if row else None)
-
-    c.execute('''
-        INSERT INTO user_data (user_id, profile_json, diet_json, evolution_json)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            profile_json = excluded.profile_json,
-            diet_json = excluded.diet_json,
-            evolution_json = excluded.evolution_json
-    ''', (user["id"], p_json, d_json, e_json))
-
-    conn.commit()
-    conn.close()
-    return {"status": "ok"}
-
 # --- GERAÇÃO DE DIETA / IA ---
 
 @app.post("/api/v1/diet/generate")
@@ -1128,7 +1076,6 @@ async def criar_plano(request: Request):
             "cardapio": [r.dict() for r in primeiro_dia_refeicoes]
         }
 
-    # Fallback determinístico clínico por orçamento
     default_refeicoes = gerar_cardapio_fallback_por_orcamento(perfil.orcamento.value, meta_calorica, macros)
 
     return {
