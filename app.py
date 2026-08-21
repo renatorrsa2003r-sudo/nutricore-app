@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 # ==============================================================================
-# 1. CONFIGURAÇÕES E BANCO DE DADOS LOCAL
+# 1. CONFIGURAÇÕES E BANCO DE DADOS
 # ==============================================================================
 
 DB_PATH = "nutricore.db"
@@ -32,7 +32,6 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # 1. Usuários e Assinatura
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +47,6 @@ def init_db():
         )
     ''')
     
-    # 2. Sessões
     c.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             token TEXT PRIMARY KEY,
@@ -58,7 +56,6 @@ def init_db():
         )
     ''')
     
-    # 3. Dados Sincronizados do Usuário (Perfil, Dieta, Evolução)
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_data (
             user_id INTEGER PRIMARY KEY,
@@ -69,7 +66,6 @@ def init_db():
         )
     ''')
     
-    # 4. Pedidos e Pagamentos Pix
     c.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +81,6 @@ def init_db():
         )
     ''')
     
-    # 5. Funil de Leads do Quiz
     c.execute('''
         CREATE TABLE IF NOT EXISTS leads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +94,6 @@ def init_db():
         )
     ''')
 
-    # 6. Protocolos Analisados
     c.execute('''
         CREATE TABLE IF NOT EXISTS protocols (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,7 +173,7 @@ def get_user_by_token(token: Optional[str]):
     return None
 
 # ==============================================================================
-# 3. ENUMS E MODELOS PYDANTIC (TODOS OS EMAILS COM STR NATIVO)
+# 3. MODELOS PYDANTIC (ESTRITAMENTE STR, SEM EMAIL_VALIDATOR)
 # ==============================================================================
 
 class SexoEnum(str, Enum):
@@ -197,34 +191,13 @@ class ObjetivoEnum(str, Enum):
     MANUTENCAO = "manutencao"
     HIPERTROFIA = "hipertrofia"
 
-class PreferenciaAlimentarEnum(str, Enum):
-    ONIVORO = "onivoro"
-    VEGETARIANO = "vegetariano"
-    VEGANO = "vegano"
-    LOW_CARB = "low_carb"
-
-class EstiloCulinarioEnum(str, Enum):
-    CASEIRO = "caseiro_brasil"
-    PRATICO = "pratico_rapido"
-    MEDITERRANEO = "mediterraneo"
-    ECONOMICO = "economico"
-
 class RegisterInput(BaseModel):
     name: str = Field(..., min_length=2)
-    email: str = Field(..., min_length=5)
-    password: str = Field(..., min_length=6)
-
-class UserRegisterInput(BaseModel):
-    name: str = Field(..., min_length=2)
-    email: str = Field(..., min_length=5)
+    email: str = Field(..., min_length=3)
     password: str = Field(..., min_length=6)
 
 class LoginInput(BaseModel):
-    email: str = Field(..., min_length=5)
-    password: str = Field(..., min_length=6)
-
-class UserLoginInput(BaseModel):
-    email: str = Field(..., min_length=5)
+    email: str = Field(..., min_length=3)
     password: str = Field(..., min_length=6)
 
 class AuthResponse(BaseModel):
@@ -264,16 +237,11 @@ class PerfilUsuarioInput(BaseModel):
     nivel_atividade: NivelAtividadeEnum = NivelAtividadeEnum.MODERADO
     objetivo: ObjetivoEnum = ObjetivoEnum.PERDA_PESO
     ritmo_objetivo: Optional[str] = "moderado"
-    preferencia: Optional[PreferenciaAlimentarEnum] = PreferenciaAlimentarEnum.ONIVORO
-    estilo_culinario: Optional[EstiloCulinarioEnum] = EstiloCulinarioEnum.CASEIRO
+    preferencia: Optional[str] = "onivoro"
+    estilo_culinario: Optional[str] = "caseiro_brasil"
     alimentos_favoritos: Optional[str] = ""
     alimentos_evitar: Optional[str] = ""
     intolerancias_saude: Optional[List[str]] = []
-    horario_acordar: Optional[str] = "07:00"
-    horario_dormir: Optional[str] = "23:00"
-    horario_treino: Optional[str] = "nenhum"
-    habilidade_culinaria: Optional[str] = "pratico"
-    orcamento: Optional[str] = "medio"
     refeicoes_por_dia: int = Field(4, ge=3, le=6)
     dias_plano: int = Field(7, ge=1, le=30)
     gemini_api_key: Optional[str] = None
@@ -301,14 +269,6 @@ class DiaPlano(BaseModel):
     titulo_dia: str
     refeicoes: List[RefeicaoIA]
 
-class PlanoAlimentarResponse(BaseModel):
-    tmb: float
-    tdee: float
-    meta_calorica: float
-    macros: Macronutrientes
-    dias_total: int
-    dias: List[DiaPlano]
-
 class TrocaAlimentoInput(BaseModel):
     refeicao_atual: RefeicaoIA
     motivo_ou_substituto: str = Field(..., min_length=2)
@@ -322,46 +282,12 @@ class ConsultaFuncionalInput(BaseModel):
     preferencia: Optional[str] = "onivoro"
     gemini_api_key: Optional[str] = None
 
-class AlimentoRecomendado(BaseModel):
-    alimento: str
-    porcao_sugerida: str
-    por_que_funciona: str
-    como_consumir: str
-
-class ReceitaTerapeutica(BaseModel):
-    titulo: str
-    tempo_preparo: str
-    ingredientes: List[str]
-    modo_preparo: str
-    quando_tomar: str
-
-class ConsultaFuncionalResponse(BaseModel):
-    titulo_estrategia: str
-    explicacao_fisiologica: str
-    alimentos_chave: List[AlimentoRecomendado]
-    alimentos_evitar: List[str]
-    receita_rapida: ReceitaTerapeutica
-
 class TreinoInput(BaseModel):
     nivel: str = "intermediario"
     foco: str = "hipertrofia"
     equipamento: str = "academia"
     tempo_minutos: int = 45
     gemini_api_key: Optional[str] = None
-
-class Exercicio(BaseModel):
-    nome: str
-    series: str
-    repeticoes: str
-    descanso: str
-    dica_tecnica: str
-
-class TreinoResponse(BaseModel):
-    titulo: str
-    foco_principal: str
-    aquecimento: List[Exercicio]
-    treino_principal: List[Exercicio]
-    finalizacao: List[Exercicio]
 
 # ==============================================================================
 # 4. MOTOR IA (MULTI-MODELO COM FALLBACK AUTOMÁTICO)
@@ -407,7 +333,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
                     raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                     return extrair_json_seguro(raw_text)
             except Exception:
-                time.sleep(0.4)
+                time.sleep(0.3)
                 continue
 
     try:
@@ -479,7 +405,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. APLICAÇÃO FASTAPI E ROTAS
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="8.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="9.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -523,7 +449,7 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# --- CAPTURA DE LEADS (QUIZ) ---
+# --- CAPTURA DE LEADS ---
 
 @app.post("/api/v1/lead/capture")
 @app.post("/api/lead/capture")
@@ -554,7 +480,7 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
     clean_phone = re.sub(r'\D', '', str(lead.phone))
     if not clean_phone.startswith('55'):
         clean_phone = '55' + clean_phone
-    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto: [https://nutricore-app.onrender.com](https://nutricore-app.onrender.com)"
+    msg = f"Olá {lead.name}! Seu diagnóstico no NutriCore Pro está pronto."
     wpp_url = f"[https://wa.me/](https://wa.me/){clean_phone}?text={urllib.parse.quote(msg)}"
 
     conn = sqlite3.connect(DB_PATH)
@@ -576,7 +502,7 @@ def capturar_lead_quiz(lead: LeadCaptureInput):
         "estimated_weeks": semanas_estimadas,
         "semanas_estimadas": semanas_estimadas,
         "recovery_whatsapp_url": wpp_url,
-        "mensagem_personalizada": f"Com base na sua rotina e metabolismo, identificamos um potencial de transformação corporal consistente em {semanas_estimadas} semanas."
+        "mensagem_personalizada": f"Com base na sua rotina e metabolismo, identificamos um potencial de transformação corporal em {semanas_estimadas} semanas."
     }
 
 # --- AUTENTICAÇÃO ---
@@ -607,14 +533,7 @@ def cadastrar_usuario(dados: RegisterInput):
 
     return AuthResponse(
         token=token,
-        user={
-            "id": user_id,
-            "name": dados.name.strip(),
-            "email": email_clean,
-            "subscription_status": "trial",
-            "plan_type": "free",
-            "is_pro": False
-        }
+        user={"id": user_id, "name": dados.name.strip(), "email": email_clean, "subscription_status": "trial", "plan_type": "free", "is_pro": False}
     )
 
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
@@ -642,15 +561,7 @@ def login_usuario(dados: LoginInput):
 
     return AuthResponse(
         token=token,
-        user={
-            "id": user_id,
-            "name": name,
-            "email": email,
-            "subscription_status": status_sub,
-            "plan_type": plan,
-            "subscription_end": sub_end,
-            "is_pro": bool(is_pro) or status_sub == "active"
-        }
+        user={"id": user_id, "name": name, "email": email, "subscription_status": status_sub, "plan_type": plan, "subscription_end": sub_end, "is_pro": bool(is_pro) or status_sub == "active"}
     )
 
 @app.get("/api/v1/auth/me")
@@ -787,7 +698,7 @@ def verificar_status_pagamento(payment_id: str):
     conn.close()
     return {"status": status_val, "is_approved": status_val == "approved"}
 
-# --- SIMULAÇÃO DE TESTE / APROVAÇÃO INSTANTÂNEA PRO ---
+# --- SIMULAÇÃO DE TESTE / MODO PRO ---
 
 @app.api_route("/api/v1/payment/simulate-approval/{payment_id}", methods=["GET", "POST"])
 @app.api_route("/api/v1/payment/simulate-approve/{payment_id}", methods=["GET", "POST"])
@@ -969,9 +880,9 @@ async def criar_plano(request: Request):
     api_key = obter_chave(perfil.gemini_api_key)
 
     prompt = f"""
-    Atue como nutricionista clínico avançado e elabore um plano alimentar completo para exatamente {perfil.dias_plano} dia(s).
+    Atue como nutricionista clínico avançado e elabore um plano alimentar completo para {perfil.dias_plano} dia(s).
     
-    ESTRUTURA JSON OBRIGATÓRIA:
+    Retorne estritamente um JSON no formato:
     {{
       "dias": [
         {{
@@ -998,8 +909,8 @@ async def criar_plano(request: Request):
               "proteinas_refeicao_g": {round(macros.proteinas_g * 0.35)},
               "carboidratos_refeicao_g": {round(macros.carboidratos_g * 0.35)},
               "gorduras_refeicao_g": {round(macros.gorduras_g * 0.35)},
-              "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijao", "Salada verde"],
-              "modo_preparo": "Grelhe o frango com temperos naturais. Monte o prato colorido.",
+              "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde"],
+              "modo_preparo": "Grelhe o frango com temperos naturais.",
               "dica_chef": "Azeite extravirgem cru por cima."
             }},
             {{
@@ -1030,11 +941,6 @@ async def criar_plano(request: Request):
         }}
       ]
     }}
-
-    Diretrizes:
-    - Calorias Alvo: ~{meta_calorica} kcal | Macros: {macros.proteinas_g}g Proteína, {macros.carboidratos_g}g Carbo, {macros.gorduras_g}g Gordura.
-    - Preferência: {preferencia} | Estilo Culinário: {estilo_culinario}.
-    - Condições/Restrições: {', '.join(restricoes) if restricoes else 'Nenhuma'}.
     Retorne APENAS o JSON puro.
     """
 
@@ -1070,12 +976,11 @@ async def criar_plano(request: Request):
             "cardapio": [r.dict() for r in primeiro_dia_refeicoes]
         }
 
-    # Fallback Clínico
     default_refeicoes = [
-        {"nome_refeicao": "Café da Manhã", "titulo_prato": "Ovos Mexidos com Aveia e Fruta", "horario_sugerido": "07:30", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["3 ovos inteiros", "30g farelo de aveia", "1 banana"], "modo_preparo": "Mexa os ovos na frigideira com fio de azeite.", "dica_chef": "Consuma proteínas pela manhã para estabilidade glicêmica."},
-        {"nome_refeicao": "Almoço", "titulo_prato": "Peito de Frango com Arroz Integral e Feijão", "horario_sugerido": "12:30", "calorias_alvo": round(meta_calorica * 0.35), "proteinas_refeicao_g": round(macros.proteinas_g * 0.35), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35), "gorduras_refeicao_g": round(macros.gorduras_g * 0.35), "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde à vontade"], "modo_preparo": "Grelhe o frango com ervas finas.", "dica_chef": "Tempere a salada com azeite e limão fresco."},
-        {"nome_refeicao": "Lanche da Tarde", "titulo_prato": "Iogurte Natural com Sementes de Chia", "horario_sugerido": "16:30", "calorias_alvo": round(meta_calorica * 0.15), "proteinas_refeicao_g": round(macros.proteinas_g * 0.15), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15), "gorduras_refeicao_g": round(macros.gorduras_g * 0.15), "ingredientes": ["170g iogurte natural desnatado", "1 colher de chia", "Morangos frescos"], "modo_preparo": "Misture os ingredientes em uma tigela.", "dica_chef": "Excelente fonte de cálcio e fibras."},
-        {"nome_refeicao": "Jantar", "titulo_prato": "Filé de Tilápia com Legumes ao Vapor e Batata Doce", "horario_sugerido": "20:00", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["140g tilápia grelhada", "100g batata doce cozida", "Brócolis e cenoura ao vapor"], "modo_preparo": "Grelhe a tilápia e sirva com os legumes.", "dica_chef": "Refeição de rápida digestão para o sono."}
+        {"nome_refeicao": "Café da Manhã", "titulo_prato": "Ovos Mexidos com Aveia e Fruta", "horario_sugerido": "07:30", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["3 ovos inteiros", "30g farelo de aveia", "1 banana"], "modo_preparo": "Mexa os ovos na frigideira com fio de azeite.", "dica_chef": "Consuma proteínas pela manhã."},
+        {"nome_refeicao": "Almoço", "titulo_prato": "Peito de Frango com Arroz Integral e Feijão", "horario_sugerido": "12:30", "calorias_alvo": round(meta_calorica * 0.35), "proteinas_refeicao_g": round(macros.proteinas_g * 0.35), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35), "gorduras_refeicao_g": round(macros.gorduras_g * 0.35), "ingredientes": ["150g peito de frango", "120g arroz integral", "80g feijão", "Salada verde"], "modo_preparo": "Grelhe o frango com ervas finas.", "dica_chef": "Tempere a salada com azeite e limão."},
+        {"nome_refeicao": "Lanche da Tarde", "titulo_prato": "Iogurte Natural com Sementes de Chia", "horario_sugerido": "16:30", "calorias_alvo": round(meta_calorica * 0.15), "proteinas_refeicao_g": round(macros.proteinas_g * 0.15), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15), "gorduras_refeicao_g": round(macros.gorduras_g * 0.15), "ingredientes": ["170g iogurte natural desnatado", "1 colher de chia", "Morangos frescos"], "modo_preparo": "Misture os ingredientes.", "dica_chef": "Excelente fonte de cálcio e fibras."},
+        {"nome_refeicao": "Jantar", "titulo_prato": "Filé de Tilápia com Legumes e Batata Doce", "horario_sugerido": "20:00", "calorias_alvo": round(meta_calorica * 0.25), "proteinas_refeicao_g": round(macros.proteinas_g * 0.25), "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25), "gorduras_refeicao_g": round(macros.gorduras_g * 0.25), "ingredientes": ["140g tilápia grelhada", "100g batata doce", "Brócolis e cenoura"], "modo_preparo": "Grelhe a tilápia e sirva com legumes.", "dica_chef": "Refeição de rápida digestão para o sono."}
     ]
 
     return {
@@ -1092,7 +997,7 @@ async def criar_plano(request: Request):
         "cardapio": default_refeicoes
     }
 
-# --- ANALISAR PROTOCOLO (IA & METABOLISMO) ---
+# --- ANALISAR PROTOCOLO ---
 
 @app.post("/api/v1/protocol/analyze")
 @app.post("/api/v1/protocolo/analisar")
@@ -1113,10 +1018,7 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
 
     prompt = f"""
     Você é um nutricionista clínico esportivo e avaliador metabólico.
-    Analise com rigor o seguinte protocolo alimentar:
-    \"{protocol_text}\"
-    Paciente com peso {weight}kg e objetivo de: {goal}.
-
+    Analise o seguinte protocolo alimentar: \"{protocol_text}\" (Paciente: {weight}kg, Objetivo: {goal}).
     Retorne OBRIGATORIAMENTE um JSON puro com:
     {{
       "status_avaliacao": "Protocolo Otimizado",
@@ -1152,17 +1054,16 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
             "pontuacao_geral": 92,
             "pontuacao": 92,
             "score": 92,
-            "resumo_executivo": f"O protocolo analisado atende com rigor científico os requisitos para o objetivo de {goal}. A ingestão proteica preserva a massa muscular e otimiza a taxa metabólica.",
+            "resumo_executivo": f"O protocolo analisado atende com rigor científico os requisitos para o objetivo de {goal}.",
             "balanco_calorico_estimado": "Déficit Calórico Controlado (-400 kcal)",
             "distribuicao_macros": {
-                "proteinas": f"Aprox. {round(weight * 2.0)}g/dia (Adequado para retenção nitrogenada)",
+                "proteinas": f"Aprox. {round(weight * 2.0)}g/dia",
                 "carboidratos": "Carboidratos complexos de baixo índice glicêmico",
                 "gorduras": "Gorduras mono e poli-insaturadas saudáveis"
             },
             "pontos_fortes": [
                 "Excelente equilíbrio de nutrientes e saciedade prolongada",
-                "Fracionamento regular prevenindo picos de insulina",
-                "Aporte de fibras adequado para a microbiota intestinal"
+                "Fracionamento regular prevenindo picos de insulina"
             ],
             "pontos_de_atencao": [
                 "Manter hidratação fracionada ao longo do dia",
@@ -1188,37 +1089,18 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
 
     return res
 
-# --- TROCA DE ALIMENTOS & CONSULTA FUNCIONAL ---
+# --- TROCA DE ALIMENTOS & CONSULTAS ---
 
 @app.post("/api/v1/diet/swap-food", response_model=RefeicaoIA)
 @app.post("/api/v1/food/swap")
 def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
     api_key = obter_chave(dados.gemini_api_key)
     prompt = f"""
-    Atue como nutricionista clínico avançado. O paciente deseja substituir um alimento mantendo a equivalência nutricional.
-    REFEIÇÃO ATUAL:
-    - Nome: {dados.refeicao_atual.nome_refeicao} | Prato: {dados.refeicao_atual.titulo_prato}
-    - Calorias: ~{dados.refeicao_atual.calorias_alvo} kcal | Proteínas: {dados.refeicao_atual.proteinas_refeicao_g}g | Carbos: {dados.refeicao_atual.carboidratos_refeicao_g}g | Gorduras: {dados.refeicao_atual.gorduras_refeicao_g}g
-    - Ingredientes: {dados.refeicao_atual.ingredientes}
-
-    PEDIDO DO PACIENTE: "{dados.motivo_ou_substituto}"
-    
-    Retorne estritamente o JSON:
-    {{
-      "nome_refeicao": "{dados.refeicao_atual.nome_refeicao}",
-      "titulo_prato": "Novo Título do Prato",
-      "horario_sugerido": "{dados.refeicao_atual.horario_sugerido}",
-      "calorias_alvo": {dados.refeicao_atual.calorias_alvo},
-      "proteinas_refeicao_g": {dados.refeicao_atual.proteinas_refeicao_g},
-      "carboidratos_refeicao_g": {dados.refeicao_atual.carboidratos_refeicao_g},
-      "gorduras_refeicao_g": {dados.refeicao_atual.gorduras_refeicao_g},
-      "ingredientes": ["Ingrediente 1", "Ingrediente 2"],
-      "modo_preparo": "Instruções práticas",
-      "dica_chef": "Dica nutricional da nova combinação"
-    }}
-    Retorne APENAS o JSON puro.
+    Substitua o alimento mantendo a equivalência calórica e de macros para:
+    Refeição: {dados.refeicao_atual.nome_refeicao} | Calorias: {dados.refeicao_atual.calorias_alvo} kcal.
+    Pedido: "{dados.motivo_ou_substituto}".
+    Retorne estritamente um JSON no schema da refeição.
     """
-
     res = executar_chamada_ia(prompt, api_key)
     if res:
         return RefeicaoIA(**res)
@@ -1236,99 +1118,47 @@ def trocar_alimento_refeicao(dados: TrocaAlimentoInput):
         dica_chef="Equivalência nutricional mantida com sucesso."
     )
 
-@app.post("/api/v1/nutrition/consult", response_model=ConsultaFuncionalResponse)
+@app.post("/api/v1/nutrition/consult")
 @app.all("/api/v1/energy/boost")
 @app.all("/api/energy/tips")
 def consultar_nutricao(dados: Optional[ConsultaFuncionalInput] = None):
-    obj = dados.objetivo_especifico if dados else "Aumentar a energia diária e a disposição metabólica"
-    api_key = obter_chave(dados.gemini_api_key if dados else None)
-
-    prompt = f"""
-    Atue como nutricionista funcional e fitoterapeuta. Gere um protocolo terapêutico em JSON para: "{obj}".
-    Estrutura JSON:
-    {{
-      "titulo_estrategia": "Protocolo de Otimização Mitocondrial e Energia",
-      "explicacao_fisiologica": "Explicação científica clara sobre como a alimentação melhora o estado metabólico.",
-      "alimentos_chave": [
-        {{"alimento": "Chá Verde ou Matchá", "porcao_sugerida": "1 xícara (200ml)", "por_que_funciona": "Rico em EGCG e L-teanina para foco estável", "como_consumir": "Pela manhã ou início da tarde"}},
-        {{"alimento": "Sementes de Abóbora", "porcao_sugerida": "30g", "por_que_funciona": "Fonte de magnésio e zinco para síntese de ATP", "como_consumir": "No lanche da tarde"}}
-      ],
-      "alimentos_evitar": ["Açúcar refinado", "Frituras em óleos poli-insaturados refinados"],
-      "receita_rapida": {{
-        "titulo": "Shot Matinal de Imunidade e Vitalidade",
-        "tempo_preparo": "2 min",
-        "ingredientes": ["50ml de água morna", "Suco de 1/2 limão", "1 colher café de cúrcuma", "1 pitada de pimenta preta"],
-        "modo_preparo": "Misture vigorosamente e tome em jejum.",
-        "quando_tomar": "Logo ao acordar"
-      }}
-    }}
-    Retorne APENAS o JSON puro.
-    """
-
-    res = executar_chamada_ia(prompt, api_key)
-    if res:
-        return ConsultaFuncionalResponse(**res)
-
-    return ConsultaFuncionalResponse(
-        titulo_estrategia="Protocolo de Otimização Mitocondrial e Energia",
-        explicacao_fisiologica="A combinação de micronutrientes antioxidantes e hidratação adequada estimula a produção celular de ATP e estabiliza a curva glicêmica.",
-        alimentos_chave=[
-            AlimentoRecomendado(alimento="Chá Verde com Limão", porcao_sugerida="200ml", por_que_funciona="Rico em polifenóis e L-teanina", como_consumir="Pela manhã"),
-            AlimentoRecomendado(alimento="Castanha-do-Pará", porcao_sugerida="2 unidades", por_que_funciona="Aporte ideal de selênio para a tireoide", como_consumir="No café da manhã")
+    return {
+        "titulo_estrategia": "Protocolo de Otimização Mitocondrial e Energia",
+        "explicacao_fisiologica": "Aporte de micronutrientes e hidratação adequada estimulam a produção celular de ATP.",
+        "alimentos_chave": [
+            {"alimento": "Chá Verde com Limão", "porcao_sugerida": "200ml", "por_que_funciona": "Rico em polifenóis", "como_consumir": "Pela manhã"},
+            {"alimento": "Castanha-do-Pará", "porcao_sugerida": "2 unidades", "por_que_funciona": "Aporte de selênio", "como_consumir": "No café da manhã"}
         ],
-        alimentos_evitar=["Refrigerantes e doces em jejum", "Frituras pesadas"],
-        receita_rapida=ReceitaTerapeutica(
-            titulo="Shot Matinal Energético",
-            tempo_preparo="2 min",
-            ingredientes=["50ml de água", "1/2 limão espremido", "1g de cúrcuma em pó"],
-            modo_preparo="Misture bem e beba em jejum.",
-            quando_tomar="Ao acordar"
-        )
-    )
+        "alimentos_evitar": ["Açúcares refinados", "Frituras em óleos vegetais"],
+        "receita_rapida": {
+            "titulo": "Shot Matinal Energético",
+            "tempo_preparo": "2 min",
+            "ingredientes": ["50ml de água", "1/2 limão espremido", "1g de cúrcuma em pó"],
+            "modo_preparo": "Misture bem e tome em jejum.",
+            "quando_tomar": "Ao acordar"
+        }
+    }
 
-@app.post("/api/v1/workout/generate", response_model=TreinoResponse)
+@app.post("/api/v1/workout/generate")
 def criar_treino(dados: TreinoInput):
-    api_key = obter_chave(dados.gemini_api_key)
-    prompt = f"""
-    Crie uma sessão de treino em JSON.
-    Nível: {dados.nivel} | Foco: {dados.foco} | Equipamento: {dados.equipamento} | Duração: {dados.tempo_minutos}min.
-    Estrutura JSON:
-    {{
-      "titulo": "Sessão de Treino Metabólico e Força",
-      "foco_principal": "{dados.foco}",
-      "aquecimento": [{{"nome": "Mobilidade Articular e Polichinelos", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Aumente a temperatura corporal gradativamente"}}],
-      "treino_principal": [
-        {{"nome": "Agachamento Livre / Goblet Squat", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Mantenha o abdômen contraído e coluna neutra"}},
-        {{"nome": "Supino Reto ou Flexões de Braço", "series": "4", "repeticoes": "10-12", "descanso": "60s", "dica_tecnica": "Cadência controlada na fase excêntrica"}},
-        {{"nome": "Remada Curvada com Barra / Halteres", "series": "4", "repeticoes": "12", "descanso": "60s", "dica_tecnica": "Puxe em direção ao quadril ativando as dorsais"}}
-      ],
-      "finalizacao": [{{"nome": "Prancha Isométrica e Alongamento", "series": "3", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Mantenha a respiração compassada"}}]
-    }}
-    Retorne APENAS o JSON puro.
-    """
-
-    res = executar_chamada_ia(prompt, api_key)
-    if res:
-        return TreinoResponse(**res)
-
-    return TreinoResponse(
-        titulo="Sessão de Treino Funcional & Força",
-        foco_principal=dados.foco,
-        aquecimento=[Exercicio(nome="Polichinelos + Mobilidade", series="2", repeticoes="45s", descanso="30s", dica_tecnica="Respiração constante")],
-        treino_principal=[
-            Exercicio(nome="Agachamento Goblet", series="4", repeticoes="12", descanso="60s", dica_tecnica="Amplitude completa"),
-            Exercicio(nome="Flexão de Braço", series="4", repeticoes="10", descanso="60s", dica_tecnica="Tronco alinhado"),
-            Exercicio(nome="Remada Unilateral", series="3", repeticoes="12/lado", descanso="60s", dica_tecnica="Foco nas dorsais")
+    return {
+        "titulo": "Sessão de Treino Funcional & Força",
+        "foco_principal": dados.foco,
+        "aquecimento": [{"nome": "Polichinelos + Mobilidade", "series": "2", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Respiração constante"}],
+        "treino_principal": [
+            {"nome": "Agachamento Goblet", "series": "4", "repeticoes": "12", "descanso": "60s", "dica_tecnica": "Amplitude completa"},
+            {"nome": "Flexão de Braço", "series": "4", "repeticoes": "10", "descanso": "60s", "dica_tecnica": "Tronco alinhado"},
+            {"nome": "Remada Unilateral", "series": "3", "repeticoes": "12/lado", "descanso": "60s", "dica_tecnica": "Foco nas dorsais"}
         ],
-        finalizacao=[Exercicio(nome="Prancha Abdominal", series="3", repeticoes="45s", descanso="30s", dica_tecnica="Glúteos e abdômen firmes")]
-    )
+        "finalizacao": [{"nome": "Prancha Abdominal", "series": "3", "repeticoes": "45s", "descanso": "30s", "dica_tecnica": "Glúteos e abdômen firmes"}]
+    }
 
 @app.post("/api/v1/ai/scan-plate")
 @app.post("/api/scan-plate")
 def scan_plate():
     return {
         "status": "success",
-        "prato_identificado": "Prato Saudável Tradicional (Arroz Integral, Feijão Carioca, Peito de Frango Grelhado e Salada Verde)",
+        "prato_identificado": "Prato Tradicional Brasileiro (Arroz, Feijão, Frango Grelhado e Salada)",
         "calorias_estimadas": 580,
         "macros": {"proteina_g": 42, "carbo_g": 65, "gordura_g": 14},
         "confianca_ia": "96%",
