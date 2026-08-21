@@ -300,14 +300,14 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (CONEXÃO DIRETA COM GEMINI 3.5 FLASH LITE)
+# 4. MOTOR IA GEMINI
 # ==============================================================================
 
 MODELOS_ATIVOS = [
-    "gemini-3.5-flash-lite",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash"
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
 ]
 
 def extrair_json_seguro(texto: str) -> dict:
@@ -328,8 +328,11 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None) -> dict:
     if not key:
         raise HTTPException(
             status_code=400,
-            detail="Chave API do Gemini não configurada (GEMINI_API_KEY)."
+            detail="Chave API do Gemini não configurada no ambiente (GEMINI_API_KEY)."
         )
+
+    # Remove quebras de linha e espaços acidentais da chave
+    key = key.strip()
 
     erros = []
     for modelo in MODELOS_ATIVOS:
@@ -405,7 +408,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="18.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="19.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -790,6 +793,57 @@ async def simular_aprovacao_sem_id(request: Request, authorization: Optional[str
         "message": "Simulação de teste concluída com sucesso! Acesso PRO liberado."
     }
 
+# --- SINCRONIZAÇÃO NUVEM ---
+
+@app.get("/api/v1/user/sync-data")
+def obter_dados_usuario(authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return {"profile": None, "diet": None, "evolution": None}
+    
+    return {
+        "profile": json.loads(row[0]) if row[0] else None,
+        "diet": json.loads(row[1]) if row[1] else None,
+        "evolution": json.loads(row[2]) if row[2] else None
+    }
+
+@app.post("/api/v1/user/sync-data")
+def salvar_dados_usuario(dados: UserDataSyncInput, authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT profile_json, diet_json, evolution_json FROM user_data WHERE user_id = ?", (user["id"],))
+    row = c.fetchone()
+
+    p_json = json.dumps(dados.profile) if dados.profile is not None else (row[0] if row else None)
+    d_json = json.dumps(dados.diet) if dados.diet is not None else (row[1] if row else None)
+    e_json = json.dumps(dados.evolution) if dados.evolution is not None else (row[2] if row else None)
+
+    c.execute('''
+        INSERT INTO user_data (user_id, profile_json, diet_json, evolution_json)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            profile_json = excluded.profile_json,
+            diet_json = excluded.diet_json,
+            evolution_json = excluded.evolution_json
+    ''', (user["id"], p_json, d_json, e_json))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
+
 # --- GERAÇÃO DE DIETA COM IA PURA (SEM FALLBACK) ---
 
 @app.post("/api/v1/diet/generate")
@@ -921,7 +975,7 @@ async def criar_plano(request: Request):
 
     return {
         "status": "success",
-        "gerado_por": "Gemini 3.5 Flash Lite",
+        "gerado_por": "Gemini 2.5 Flash",
         "tmb": tmb,
         "tdee": tdee,
         "meta_calorica": meta_calorica,
@@ -994,7 +1048,7 @@ async def analisar_protocolo(request: Request, authorization: Optional[str] = He
 
     res = executar_chamada_ia(prompt)
     res["status"] = "success"
-    res["gerado_por"] = "Gemini 3.5 Flash Lite"
+    res["gerado_por"] = "Gemini 2.5 Flash"
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
