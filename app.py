@@ -302,7 +302,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (SDK OFICIAL GOOGLE-GENAI - GEMINI 3.5 FLASH LITE)
+# 4. MOTOR IA GEMINI (SDK OFICIAL GOOGLE-GENAI)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -333,7 +333,7 @@ def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None) -> dict:
             detail="Chave API do Gemini não configurada (GEMINI_API_KEY)."
         )
 
-    client = genai.Client(api_key=key)
+    client = genai.Client(api_key=key.strip())
 
     erros = []
     for modelo in MODELOS_ATIVOS:
@@ -403,7 +403,7 @@ def calcular_metas(p: PerfilUsuarioInput):
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="20.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="21.0.0")
 
 app.add_middleware(
     CORSMiddleware,
