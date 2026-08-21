@@ -300,7 +300,7 @@ class TreinoInput(BaseModel):
     gemini_api_key: Optional[str] = None
 
 # ==============================================================================
-# 4. MOTOR IA GEMINI (REST DIRETO)
+# 4. MOTOR IA GEMINI DE ALTA PRECISÃO (TIMEOUT DE 45s + LOGS REAIS)
 # ==============================================================================
 
 MODELOS_ATIVOS = [
@@ -325,26 +325,37 @@ def obter_chave(api_key_param: Optional[str]):
 
 def executar_chamada_ia(prompt: str, chave_api: Optional[str] = None):
     key = chave_api or GEMINI_API_KEY
-    if not key or not str(key).startswith("AIzaSy"):
+    if not key:
+        print("[AVISO IA] Nenhuma chave GEMINI_API_KEY configurada. Indo para fallback.")
         return None
 
     for modelo in MODELOS_ATIVOS:
-        for _ in range(2):
-            try:
-                url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){modelo}:generateContent?key={key}"
-                headers = {"Content-Type": "application/json"}
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"response_mime_type": "application/json", "temperature": 0.7}
+        try:
+            print(f"[IA NUTRICORE] Solicitando geração ao modelo: {modelo}...")
+            url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){modelo}:generateContent?key={key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.75
                 }
-                resp = requests.post(url, headers=headers, json=payload, timeout=10)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    return extrair_json_seguro(raw_text)
-            except Exception:
-                time.sleep(0.3)
-                continue
+            }
+            # Timeout expandido para permitir que a IA elabore cardápios densos
+            resp = requests.post(url, headers=headers, json=payload, timeout=45)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                resultado = extrair_json_seguro(raw_text)
+                print(f"[IA SUCESSO] Resposta gerada com sucesso pelo {modelo}!")
+                return resultado
+            else:
+                print(f"[IA ERRO] Modelo {modelo} respondeu HTTP {resp.status_code}: {resp.text[:150]}")
+        except Exception as e:
+            print(f"[IA EXCEÇÃO] Falha ao consultar {modelo}: {e}")
+            continue
+
     return None
 
 # ==============================================================================
@@ -402,7 +413,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra/búfala", "100g Mirtilos ou Morangos frescos", "Café espresso"],
+                "ingredientes": ["3 Ovos caipiras", "30g Queijo de cabra", "100g Frutas vermelhas frescas", "Café espresso"],
                 "modo_preparo": "Prepare a omelete em fogo baixo com manteiga ghee.",
                 "dica_chef": "Rico em antioxidantes de alta densidade."
             },
@@ -414,8 +425,8 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.35),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.35),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.35),
-                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos e tomatinhos confitados", "Azeite EV"],
-                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos no azeite.",
+                "ingredientes": ["160g Salmão grelhado", "100g Quinoa real cozida", "Aspargos grelhados", "Azeite EV"],
+                "modo_preparo": "Grelhe o salmão com a pele crocante e salteie os aspargos.",
                 "dica_chef": "Excelente fonte de ômega-3 EPA/DHA."
             },
             {
@@ -426,20 +437,20 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas", "1 colher de Mel cru"],
+                "ingredientes": ["150g Iogurte grego sem açúcar", "25g Mix de Nozes e Amêndoas", "1 colher de Mel"],
                 "modo_preparo": "Misture os ingredientes em uma taça.",
                 "dica_chef": "Gorduras monoinsaturadas e saciedade prolongada."
             },
             {
                 "nome_refeicao": "Jantar Leve",
-                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha",
+                "titulo_prato": "Medalhão de Mignon com Purê de Mandioquinha e Brócolis",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ninja ao vapor"],
-                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê aveludado.",
+                "ingredientes": ["150g Filé Mignon grelhado", "120g Purê de Mandioquinha", "Brócolis ao vapor"],
+                "modo_preparo": "Sele o mignon ao ponto e sirva com o purê.",
                 "dica_chef": "Proteína de alto valor biológico e ferro heme."
             }
         ]
@@ -453,7 +464,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "2 Fatias de pão 100% integral", "1 Banana média", "Café preto"],
                 "modo_preparo": "Prepare os ovos na frigideira com 1 fio de azeite.",
                 "dica_chef": "Proteína e carboidrato de média absorção."
             },
@@ -471,19 +482,19 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
             },
             {
                 "nome_refeicao": "Lanche da Tarde",
-                "titulo_prato": "Iogurte Natural Desnatado com Chia e Aveia",
+                "titulo_prato": "Iogurte Natural com Chia e Aveia",
                 "horario_sugerido": "16:30",
                 "calorias_alvo": round(meta_calorica * 0.15),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.15),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.15),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.15),
-                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de sementes de chia"],
+                "ingredientes": ["1 Pote iogurte natural (170g)", "30g Farelo de aveia", "1 Colher de chia"],
                 "modo_preparo": "Misture tudo em uma tigela.",
                 "dica_chef": "Excelente aporte de fibras solúveis."
             },
             {
                 "nome_refeicao": "Jantar Regenerativo",
-                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes ao Vapor",
+                "titulo_prato": "Filé de Tilápia com Batata Doce e Legumes",
                 "horario_sugerido": "20:00",
                 "calorias_alvo": round(meta_calorica * 0.25),
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
@@ -495,7 +506,6 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
             }
         ]
     else:
-        # Padrão: ECONÔMICO
         return [
             {
                 "nome_refeicao": "Café da Manhã Econômico",
@@ -505,7 +515,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
                 "proteinas_refeicao_g": round(macros.proteinas_g * 0.25),
                 "carboidratos_refeicao_g": round(macros.carboidratos_g * 0.25),
                 "gorduras_refeicao_g": round(macros.gorduras_g * 0.25),
-                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz de milho cozido", "1 Banana prata com canela", "Café preto"],
+                "ingredientes": ["3 Ovos inteiros mexidos", "100g Cuscuz cozido", "1 Banana prata com canela", "Café preto"],
                 "modo_preparo": "Hidrate e cozinhe o cuscuz no vapor. Prepare os ovos mexidos na frigideira.",
                 "dica_chef": "Custo por refeição de apenas ~R$ 3,50 com proteína completa."
             },
@@ -551,7 +561,7 @@ def gerar_cardapio_fallback_por_orcamento(orcamento: str, meta_calorica: float, 
 # 6. ROTAS FASTAPI
 # ==============================================================================
 
-app = FastAPI(title="NutriCore Pro Engine", version="15.0.0")
+app = FastAPI(title="NutriCore Pro Engine", version="16.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1107,6 +1117,7 @@ async def criar_plano(request: Request):
 
         return {
             "status": "success",
+            "gerado_por": "Gemini IA (Tempo Real)",
             "tmb": tmb,
             "tdee": tdee,
             "meta_calorica": meta_calorica,
@@ -1124,6 +1135,7 @@ async def criar_plano(request: Request):
 
     return {
         "status": "success",
+        "gerado_por": "Plano Clínico Inteligente",
         "tmb": tmb,
         "tdee": tdee,
         "meta_calorica": meta_calorica,
